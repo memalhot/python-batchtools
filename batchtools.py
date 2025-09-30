@@ -44,9 +44,9 @@ def bj():
         return 0
 
     if WATCH:
-        subprocess.run(["oc", "get", "-w", "workloads"])
+        subprocess.run(["oc", "get", "-w", "jobs"])
     else:
-        subprocess.run(["oc", "get", "workloads"])
+        subprocess.run(["oc", "get", "jobs"])
 
 def bl():
     pods = sys.argv[2:]
