@@ -1,9 +1,6 @@
 import sys
 import subprocess
 
-def run(command):
-    return subprocess.run(command, check=False, text=True, capture_output=True)
-
 def bd():
     """delete workloads, if none passed, delete every GPU job"""
     workloads=sys.argv[2:]
@@ -15,7 +12,7 @@ def bd():
         return 0
 
     if not workloads:
-        ret = run(["oc", "get", "workloads", "-o", "name"])
+        ret = subprocess.run(["oc", "get", "workloads", "-o", "name"])
         if ret.returncode != 0:
             sys.stderr.write(ret.stderr)
             sys.exit(ret.returncode)
@@ -59,7 +56,7 @@ def bl():
 
     # if no pods provided fetch pods
     if not pods:
-        ret = run(["oc", "get", "pods"])
+        ret = subprocess.run(["oc", "get", "pods"])
         if ret.returncode != 0:
             sys.stderr.write(ret)
             sys.exit(ret.returncode)
@@ -71,7 +68,7 @@ def bl():
         return 0
     
     for p in pods:
-        ret = run(["oc", "logs", p])
+        ret = subprocess.run(["oc", "logs", p])
         if ret.stdout:
             sys.stdout.write(ret.stdout)
         if ret.stderr:
