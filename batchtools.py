@@ -17,11 +17,10 @@ def bd():
     if not workloads:
         ret = run(["oc", "get", "workloads", "-o", "name"])
         if ret.returncode != 0:
-            sys.stderr.write("Failed to list workloads via oc.\n")
+            sys.stderr.write(ret.stderr)
             sys.exit(ret.returncode)
         workloads = [w for w in workloads if w.startswith("job-job") or w.startswith("workloads/job-job")]
         print(workloads)
-
 
     if not workloads:
         print ("No GPU worloads found to delete")
@@ -31,11 +30,11 @@ def bd():
     for w in workloads:
         print(w)
         name = w if "/" in w else f"workloads/{w}"
-        res = run(["oc", "delete", name])
-        if res.stderr:
-            sys.stderr.write(res.stderr)
-        if res.returncode != 0:
-            exit_code = res.returncode
+        ret = run(["oc", "delete", name])
+        if ret.stderr:
+            sys.stderr.write(ret.stderr)
+        if ret.returncode != 0:
+            exit_code = ret.returncode
 
     sys.exit(exit_code)
 
@@ -62,7 +61,7 @@ def bl():
     if not pods:
         ret = run(["oc", "get", "pods"])
         if ret.returncode != 0:
-            sys.stderr.write("Failed to list pods via bpods.\n")
+            sys.stderr.write(ret)
             sys.exit(ret.returncode)
         pods = ret.stdout.strip().split
         print(pods)
