@@ -36,7 +36,7 @@ def bd():
     sys.exit(exit_code)
 
 def bj():
-    WATCH=sys.argv[2:]
+    WATCH=sys.argv[3:]
 
     if WATCH == "-h":
         print("bjobs \n Display the status of your jobs. \n"
@@ -49,7 +49,7 @@ def bj():
         subprocess.run(["oc", "get", "jobs"])
 
 def bl():
-    pods = sys.argv[2:]
+    pods = sys.argv[3:]
     if pods == "-h":
         print("blog [pod-name [pod-name ...]]\n Display logs of specified pods.\n If none specified then logs for all pods of all current batch jobs will be display. \n See repository README.md for more documentation and examples.")
         return 0
