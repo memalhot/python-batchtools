@@ -97,7 +97,7 @@ def main():
     valid_args = {"bd", "bj", "bl", "bp", "bs", "bq", "bw, br"}
 
     # Skip the program name arg
-    args = sys.argv[1]
+    args = sys.argv[1:2]
 
     if not args:
         # CHANGE ME
