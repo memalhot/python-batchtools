@@ -37,7 +37,7 @@ def main():
     for cmd in valid_args:
         sub = subparsers.add_parser(cmd, help=f"Run {cmd}")
         if cmd == "bd":
-            sub.add_argument("-h", nargs="*")
+            sub.add_argument("-h")
         elif cmd == "bj":
             sub.add_argument("-w", "--watch", action="store_true",
                              help="Watch jobs continuously")
