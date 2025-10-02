@@ -8,7 +8,7 @@ def bd(args):
     print("bd called", args)
 
 def bj(args): 
-    if args.watch:
+    if args:
         subprocess.run(["oc", "get", "-w", "jobs"])
     else:
         subprocess.run(["oc", "get", "jobs"])
@@ -39,8 +39,7 @@ def main():
         if cmd == "bd":
             sub.add_argument("-h")
         elif cmd == "bj":
-            sub.add_argument("-w", "--watch", action="store_true",
-                             help="Watch jobs continuously")
+            sub.add_argument("-w", "--watch")
 
     args = parser.parse_args()
 
