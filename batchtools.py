@@ -1,5 +1,6 @@
 import sys
 import subprocess
+import argparse
 
 def bd():
     """delete workloads, if none passed, delete every GPU job"""
@@ -36,7 +37,7 @@ def bd():
     sys.exit(exit_code)
 
 def bj():
-    WATCH=sys.argv[3:]
+    WATCH=sys.argv[2]
 
     if WATCH == "-h":
         print("bjobs \n Display the status of your jobs. \n"
@@ -89,12 +90,17 @@ def bw():
 def br():
     print("bw called")
 
+def bwk():
+
+    """ this is for oc get workloads """
+    
+    print("bwk called")
 
 def main():
-    valid_args = {"bd", "bj", "bl", "bp", "bs", "bq", "bw, br"}
+    valid_args = {"bd", "bj", "bl", "bp", "bs", "bq", "bw, br, bwk"}
 
     # Skip the program name arg
-    args = sys.argv[1:3]
+    args = sys.argv[1]
 
     if not args:
         # CHANGE ME
