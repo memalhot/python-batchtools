@@ -7,15 +7,40 @@ import subprocess
 def bd(args): 
     print("bd called", args)
 
+    # CHECK IF ARGS PROVIDES A WORKLOAD TO DELETE
+
+    # save this somewhere
+    result = subprocess.run(["oc", "get", "workloads", "-o", "name"], capture_output=True, text=True, check=True)
+    workloads = result.stdout.strip().splitlines()
+
+    workloads = [w for w in workloads if w.startswith("job-job") or w.startswith("workloads/job-job")]
+
+    if not workloads:
+        print ("No GPU worloads found to delete")
+        return  
+    for w in workloads:
+        print(w)
+        name = w if "/" in w else f"workloads/{w}"
+        subprocess.run(["oc", "delete", name])
+
+
 def bj(args): 
     if args:
         subprocess.run(["oc", "get", "-w", "jobs"])
     else:
         subprocess.run(["oc", "get", "jobs"])
-def bl(args): 
+def bl(args):
+    subprocess.run()
+
     print("bl called", args)
 def bp(args): 
     print("bp called", args)
+
+    if not pods:
+        ret = subprocess.run(["oc", "get", "pods"], capture_output=True, text=True, check=True)
+
+        pods = ret.stdout.strip().split
+        print(pods)
 def bs(args): 
     print("bs called", args)
 def bq(args): 
@@ -36,9 +61,7 @@ def main():
     # Create subparsers for valid command
     for cmd in valid_args:
         sub = subparsers.add_parser(cmd, help=f"Run {cmd}")
-        if cmd == "bd":
-            sub.add_argument("-h")
-        elif cmd == "bj":
+        if cmd == "bj":
             sub.add_argument("-w", "--watch")
 
     args = parser.parse_args()
