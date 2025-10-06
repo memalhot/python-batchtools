@@ -293,32 +293,25 @@ def br(args):
     
 
 def main():
-    valid_args = {"bd", "bj", "bl", "bp", "bs", "bq", "bw", "br", "bwk"}
-
     parser = argparse.ArgumentParser(description="Command-line tooling")
-    args = parser.parse_args()
-    print(args)
-
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    for cmd in valid_args:
-        sub = subparsers.add_parser(cmd, help=f"Run {cmd}")
-        # add bj-specific flag
-        if cmd == "bj":
-            sub.add_argument(
-                "-w", "--watch",
-                action="store_true",
-                help="Watch for changes in job status"
-            )
-            sub.set_defaults(func=bj)
-        else:
-            # generic binding for other functions
-            sub.set_defaults(func=globals().get(cmd))
+    # bj: supports -w / --watch
+    bj_parser = subparsers.add_parser("bj", help="Show jobs (-w to watch)")
+    bj_parser.add_argument("-w", "--watch", action="store_true",
+                           help="Watch for changes in job status")
+    bj_parser.set_defaults(func=bj)
+
+    # other commands
+    for name, func in [
+        ("bd", bd), ("bl", bl), ("bp", bp), ("bs", bs),
+        ("bq", bq), ("bw", bw), ("br", br), ("bwk", bwk),
+    ]:
+        sp = subparsers.add_parser(name, help=f"Run {name}")
+        sp.set_defaults(func=func)
 
     args = parser.parse_args()
-    print(args)
-    args.func(args)
-
+    return args.func(args)
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
