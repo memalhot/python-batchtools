@@ -136,6 +136,8 @@ def main():
     parser = argparse.ArgumentParser(description="Command-line tooling")
     subparsers = parser.add_subparsers(dest="command", required=True)
     
+    for cmd in valid_args:
+        sub = subparsers.add_parser(cmd, help=f"Run {cmd}")
     if cmd == "bj":
             sub.add_argument(
                 "-w", "--watch",
@@ -144,7 +146,6 @@ def main():
             )
             sub.set_defaults(func=bj)
     else:
-            # generic binding for other functions
             sub.set_defaults(func=globals().get(cmd))
 
     args = parser.parse_args()
