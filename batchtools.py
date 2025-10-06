@@ -9,9 +9,10 @@ def bj(args):
     """Display status of jobs"""
 
     if sys.argv[2:]=="-w" or sys.argv[2:]=="--watch":
-        subprocess.run(["oc", "get", "-w", "jobs"])
+        print("here")
+        subprocess.run(["oc", "get", "-w", "jobs"], stdout=subprocess.PIPE)
     else:
-        subprocess.run(["oc", "get", "jobs"])
+        subprocess.run(["oc", "get", "jobs"], stdout=subprocess.PIPE)
 
 def bd(args): 
     print("bd called", args)
