@@ -64,14 +64,16 @@ def bp(args):
         if jobs:
             job_name="job=name"
             for j in jobs:
-                result = subprocess.run(["oc", "get", "pods", "-l", job-name=j, "o", "name"])
+                # FIX THIS
+                result = subprocess.run(["oc", "get", "pods", "-l", job-name==j, "o", "name"])
         else:
             print("No pods")
 
 def bs(args): 
     print("bs called", args)
 
-def bq(args): 
+def bq(args):
+    """ADD DOC STRING"""
     try:
         result = subprocess.run(
             ["oc", "get", "clusterqueue", "-o", "json"],
