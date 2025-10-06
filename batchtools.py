@@ -6,6 +6,7 @@ import json
 
 def bj(args):
     """ display the status of jobs """
+    print(args)
     if args == "bj -w" or args == "bj --watch":
         subprocess.run(["oc", "get", "-w", "jobs"])
     else:
