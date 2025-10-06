@@ -2,15 +2,27 @@ import argparse
 import sys
 import subprocess
 import json
+import getopt
 
 
 def bj(args):
-    """ display the status of jobs """
-    if args.watch:
+    """ display status of jobs """
+    
+    try:
+        opts, _ = getopt.getopt(args, "w", ["watch"])
+    except getopt.GetoptError as err:
+        print(err)
+        sys.exit(2)
+
+    watch = False
+    for opt, _ in opts:
+        if opt in ("-w", "--watch"):
+            watch = True
+
+    if watch:
         subprocess.run(["oc", "get", "-w", "jobs"])
     else:
         subprocess.run(["oc", "get", "jobs"])
-
 def bd(args): 
     print("bd called", args)
 
@@ -253,25 +265,28 @@ def br(args):
     print("br called", args)
     
 def main():
-    parser = argparse.ArgumentParser(description="Command-line tooling")
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    """Main command dispatcher."""
+    commands = {
+        "bj": bj,
+        "bd": bd,
+        "bl": bl,
+        "bp": bp,
+        "bs": bs,
+        "bq": bq,
+        "bw": bw,
+        "br": br,
+        "bwk": bwk,
+    }
 
-    # bj: supports -w / --watch
-    bj_parser = subparsers.add_parser("bj", help="Show jobs (-w to watch)")
-    bj_parser.add_argument("-w", "--watch", action="store_true",
-                           help="Watch for changes in job status")
-    bj_parser.set_defaults(func=bj)
+    if len(sys.argv) < 2 or sys.argv[1] not in commands:
+        print("Usage: python3 batchtools.py <command> [options]")
+        print("Available commands:", " ".join(commands.keys()))
+        sys.exit(1)
 
-    # other commands
-    for name, func in [
-        ("bd", bd), ("bl", bl), ("bp", bp), ("bs", bs),
-        ("bq", bq), ("bw", bw), ("br", br), ("bwk", bwk),
-    ]:
-        sp = subparsers.add_parser(name, help=f"Run {name}")
-        sp.set_defaults(func=func)
+    cmd = sys.argv[1]
+    func = commands[cmd]
+    func(sys.argv[2:])  # pass the remaining args to the function
 
-    args = parser.parse_args()
-    return args.func(args)
 
 if __name__ == "__main__":
     sys.exit(main())
