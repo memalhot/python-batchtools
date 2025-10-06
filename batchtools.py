@@ -130,6 +130,9 @@ def bwk(args):
 def bw(args): 
     print("bw called", args)
 
+def br(args):
+    print("br called")
+
 def main():
     commands = {
         "bj": bj,
