@@ -296,6 +296,9 @@ def main():
     valid_args = {"bd", "bj", "bl", "bp", "bs", "bq", "bw", "br", "bwk"}
 
     parser = argparse.ArgumentParser(description="Command-line tooling")
+    args = parser.parse_args()
+    print(args)
+
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     for cmd in valid_args:
