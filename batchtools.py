@@ -1,20 +1,36 @@
-import argparse
 import sys
 import subprocess
 import json
-import getopt
 
 
 def bj(args):
-    """Display status of jobs"""
-    print(sys.argv[2:])
+    help_bjobs = """\
+            bjobs
+                Display the status of your jobs. This includes all jobs that have not been deleted.
+
+                Note:
+                Jobs must be explicitly deleted after they have completed.
+                'brun' deletes jobs by default. However, if you specified WAIT=0 to 'brun',
+                then it will not delete the job.
+
+                Tip:
+                Set WATCH=1 to have bjobs stay running and display changes in your jobs.
+
+                See also:
+                'brun -h' and the repository README.md for more documentation and examples.
+            """
 
     # cannot do string comparison bc argv is a list
-    if "-w" in sys.argv[2:] or "--watch" in sys.argv[2:]:
-        print("here")
-        subprocess.run(["oc", "get", "-w", "jobs"], stdout=subprocess.PIPE)
+    if "-h" in sys.argv[2:] or "--help" in sys.argv[2:]:
+        print(help_bjobs)
+
+    elif "-w" in sys.argv[2:] or "--watch" in sys.argv[2:]:
+        print("Getting jobs with -w flag set")
+        ret=subprocess.run(["oc", "get", "-w", "jobs"], capture_output=True, text=True, check=True)
+        print(ret)
+
     else:
-        subprocess.run(["oc", "get", "jobs"], stdout=subprocess.PIPE)
+        ret=subprocess.run(["oc", "get", "jobs"], capture_output=True, text=True, check=True)
 
 def bd(args): 
     print("bd called", args)
