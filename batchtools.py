@@ -3,6 +3,8 @@ import subprocess
 import json
 
 
+### error catching needed for functions~~
+
 def bj(args):
     help_bjobs = """\
             bjobs
@@ -32,6 +34,8 @@ def bj(args):
 
     if "-h" in sys.argv[2:] or "--help" in sys.argv[2:]:
         print(help_bjobs)
+    
+    # MAYBE NEEDS MORE INFO FOR USER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     elif "-w" in sys.argv[2:] or "--watch" in sys.argv[2:]:
         print("Getting jobs with -w flag set")
         subprocess.run(["oc", "get", "-w", "jobs"])
@@ -39,12 +43,10 @@ def bj(args):
         subprocess.run(["oc", "get", "jobs"])
 
 def bd(args): 
-    print("bd called", args)
 
     # CHECK IF ARGS PROVIDES A WORKLOAD TO DELETE
 
     # ELSE
-    # add error catching
     result = subprocess.run(["oc", "get", "workloads", "-o", "name"], capture_output=True, text=True, check=True)
     workloads = result.stdout.strip().splitlines()
 
@@ -62,8 +64,6 @@ def bd(args):
 
 def bl(args):
     # CHECK IF ARGS PROVIDES PODS
-
-    # ELSE
     ret = subprocess.run(["oc", "get", "pods"], capture_output=True, text=True, check=True)
     pods = ret.stdout.strip().split
     print(pods)
@@ -79,8 +79,6 @@ def bl(args):
 
 def bp(args):
     # CHECK IF ARGS PROVIDES PODS
-
-    # ELSE
     if not pods:
         ret = subprocess.run(["oc", "get", "jobs", "-o", "name"], capture_output=True, text=True, check=True)
 
@@ -98,53 +96,76 @@ def bs(args):
     bps(args)
 
 def bq(args):
-    """ Gets status of the queue and tallies the admitted, pending, reserved, and total GPUS for user visibility """
-    try:
-        result = subprocess.run(
-            ["oc", "get", "clusterqueue", "-o", "json"],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        data = json.loads(result.stdout)
-    except subprocess.CalledProcessError as e:
-        sys.stderr.write(f"Error running oc: {e.stderr or e}\n")
-        sys.exit(e.returncode)
-    except json.JSONDecodeError:
-        sys.stderr.write("Failed to parse oc output as JSON.\n")
+    help_bq="""\
+            Usage:
+            bqstat [-h]
+
+            Display the status of the GPU queues for the cluster.
+
+            This command shows the number of admitted (active), pending, and reserved jobs 
+            on each queue. It also displays how many GPUs service each queue and the 
+            queuing strategy being used.
+
+            See also:
+            See the repository README.md for more documentation and examples.
+        """
+
+    valid = {"-h"}
+
+    # check for invalid arguments
+    if any(arg not in valid for arg in args):
+        print(help_bq)
         sys.exit(1)
 
-    # iterate through clusterqueues and compute totals
-    for item in data.get("items", []):
-        meta = item.get("metadata", {})
-        spec = item.get("spec", {})
-        status = item.get("status", {})
+    if "-h" in argv[2:]:
+        print(help_bq)
+    else:
+        try:
+            result = subprocess.run(
+                ["oc", "get", "clusterqueue", "-o", "json"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            data = json.loads(result.stdout)
+        except subprocess.CalledProcessError as e:
+            sys.stderr.write(f"Error running oc: {e.stderr or e}\n")
+            sys.exit(e.returncode)
+        except json.JSONDecodeError:
+            sys.stderr.write("Failed to parse oc output as JSON.\n")
+            sys.exit(1)
 
-        # add up to get total GPU quota across all resourceGroups
-        total_gpu = 0
-        for rg in spec.get("resourceGroups", []):
-            for flav in rg.get("flavors", []):
-                for res in flav.get("resources", []):
-                    if res.get("name") == "nvidia.com/gpu":
-                        try:
-                            total_gpu += int(res.get("nominalQuota", 0))
-                        except (TypeError, ValueError):
-                            continue
+        # iterate through clusterqueues and compute totals
+        for item in data.get("items", []):
+            meta = item.get("metadata", {})
+            spec = item.get("spec", {})
+            status = item.get("status", {})
 
-        # print zero if none
-        admitted = status.get("admittedWorkloads", 0)
-        pending = status.get("pendingWorkloads", 0)
-        reserving = status.get("reservingWorkloads", 0)
-        queueing = spec.get("queueingStrategy", "")
+            # add up to get total GPU quota across all resourceGroups
+            total_gpu = 0
+            for rg in spec.get("resourceGroups", []):
+                for flav in rg.get("flavors", []):
+                    for res in flav.get("resources", []):
+                        if res.get("name") == "nvidia.com/gpu":
+                            try:
+                                total_gpu += int(res.get("nominalQuota", 0))
+                            except (TypeError, ValueError):
+                                continue
 
-        print(
-            f"{meta.get('name','')} \t"
-            f"admitted: {admitted} "
-            f"pending: {pending} "
-            f"reserved: {reserving} "
-            f"GPUS:{total_gpu} "
-            f"{queueing}"
-        )
+            # print zero if none
+            admitted = status.get("admittedWorkloads", 0)
+            pending = status.get("pendingWorkloads", 0)
+            reserving = status.get("reservingWorkloads", 0)
+            queueing = spec.get("queueingStrategy", "")
+
+            print(
+                f"{meta.get('name','')} \t"
+                f"admitted: {admitted} "
+                f"pending: {pending} "
+                f"reserved: {reserving} "
+                f"GPUS:{total_gpu} "
+                f"{queueing}"
+            )
 
 
 def bwk(args): 
