@@ -6,15 +6,22 @@ import json
 ### error catching needed for functions~~
 
 def help_string(args, help_string, valid):
+    """ function to print help strings when needed """
+    
     if any(arg not in valid for arg in args):
         print(help_string)
         sys.exit(1)
+    elif "-h" in sys.argv[2:] or "--help" in sys.argv[2:]:
+        print(help_string)
+        sys.exit(0)
+    else:
+        return
 
 def bj(args):
     help_bjobs = """\
             bjobs
                 Usage:
-                    bjobs [-h] [-w | --watch]
+                    bjobs [-h | --help] [-w | --watch]
 
                     Display the status of your jobs. This includes all jobs that have not been deleted.
 
@@ -31,22 +38,21 @@ def bj(args):
             """
 
     # check for invalid args
-    valid = {"-h", "-w", "--watch"}
+    valid = {"-h", "--help", "-w", "--watch"}
     help_string(args, help_bjobs, valid)
 
-    if "-h" in sys.argv[2:] or "--help" in sys.argv[2:]:
-        print(help_bjobs)
     # MAYBE NEEDS MORE INFO FOR USER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    elif "-w" in sys.argv[2:] or "--watch" in sys.argv[2:]:
+    if "-w" in sys.argv[2:] or "--watch" in sys.argv[2:]:
         print("Getting jobs with -w flag set")
         subprocess.run(["oc", "get", "-w", "jobs"])
     else:
         subprocess.run(["oc", "get", "jobs"])
 
 def bd(args): 
+
     help_bd="""\
         Usage:
-            bdel [-h] [jobname [jobname...]]
+            bdel [-h | --help] [jobname [jobname...]]
 
                 Delete the specified jobs. If none are specified, then all current jobs
                 are deleted ;-).
@@ -56,10 +62,9 @@ def bd(args):
     """
     
     # check for invalid arguments
-    valid = {"-h"}
-    help_string(args, help_bjobs, valid)
+    valid = {"-h", "--help" }
+    help_string(args, help_bd, valid)
 
-    # ELSE
     result = subprocess.run(["oc", "get", "workloads", "-o", "name"], capture_output=True, text=True, check=True)
     workloads = result.stdout.strip().splitlines()
 
@@ -111,7 +116,7 @@ def bs(args):
 def bq(args):
     help_bq="""\
             Usage:
-                bq [-h]
+                bq [-h | --help ]
 
                 Display the status of the GPU queues for the cluster.
 
@@ -124,13 +129,10 @@ def bq(args):
         """
 
     # check for invalid arguments
-    valid = {"-h"}
+    valid = {"-h", "--help"}
     help_string(args, help_bq, valid)
 
-    if "-h" in sys.argv[2:]:
-        print(help_bq)
-    else:
-        try:
+    try:
             result = subprocess.run(
                 ["oc", "get", "clusterqueue", "-o", "json"],
                 check=True,
