@@ -7,6 +7,7 @@ import getopt
 
 def bj(args):
     """Display status of jobs"""
+    print(sys.argv[2:])
 
     if sys.argv[2:]=="-w" or sys.argv[2:]=="--watch":
         print("here")
