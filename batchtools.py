@@ -5,6 +5,11 @@ import json
 
 ### error catching needed for functions~~
 
+def help_string(args, help_string, valid):
+    if any(arg not in valid for arg in args):
+        print(help_string)
+        sys.exit(1)
+
 def bj(args):
     help_bjobs = """\
             bjobs
@@ -25,16 +30,12 @@ def bj(args):
                     'brun -h' and the repository README.md for more documentation and examples.
             """
 
+    # check for invalid args
     valid = {"-h", "-w", "--watch"}
-
-    # check for invalid arguments
-    if any(arg not in valid for arg in args):
-        print(help_bjobs)
-        sys.exit(1)
+    help_string(args, help_bjobs, valid)
 
     if "-h" in sys.argv[2:] or "--help" in sys.argv[2:]:
         print(help_bjobs)
-    
     # MAYBE NEEDS MORE INFO FOR USER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     elif "-w" in sys.argv[2:] or "--watch" in sys.argv[2:]:
         print("Getting jobs with -w flag set")
@@ -43,8 +44,20 @@ def bj(args):
         subprocess.run(["oc", "get", "jobs"])
 
 def bd(args): 
+    help_bd="""\
+        Usage:
+            bdel [-h] [jobname [jobname...]]
 
-    # CHECK IF ARGS PROVIDES A WORKLOAD TO DELETE
+                Delete the specified jobs. If none are specified, then all current jobs
+                are deleted ;-).
+
+                See also:
+                See repository README.md for more documentation and examples.
+    """
+    
+    # check for invalid arguments
+    valid = {"-h"}
+    help_string(args, help_bjobs, valid)
 
     # ELSE
     result = subprocess.run(["oc", "get", "workloads", "-o", "name"], capture_output=True, text=True, check=True)
@@ -110,12 +123,9 @@ def bq(args):
                 See the repository README.md for more documentation and examples.
         """
 
-    valid = {"-h"}
-
     # check for invalid arguments
-    if any(arg not in valid for arg in args):
-        print(help_bq)
-        sys.exit(1)
+    valid = {"-h"}
+    help_string(args, help_bq, valid)
 
     if "-h" in sys.argv[2:]:
         print(help_bq)
