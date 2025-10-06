@@ -7,7 +7,7 @@ import json
 
 def help_string(args, help_string, valid):
     """ function to print help strings when needed """
-    
+
     if any(arg not in valid for arg in args):
         print(help_string)
         sys.exit(1)
@@ -51,6 +51,7 @@ def bj(args):
 def bd(args): 
 
     help_bd="""\
+        bdel
         Usage:
             bdel [-h | --help] [jobname [jobname...]]
 
@@ -62,7 +63,7 @@ def bd(args):
     """
     
     # check for invalid arguments
-    valid = {"-h", "--help" }
+    valid = {"-h", "--help"}
     help_string(args, help_bd, valid)
 
     result = subprocess.run(["oc", "get", "workloads", "-o", "name"], capture_output=True, text=True, check=True)
