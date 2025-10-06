@@ -6,23 +6,13 @@ import getopt
 
 
 def bj(args):
-    """ display status of jobs """
+    """Display status of jobs"""
 
-    try:
-        opts, _ = getopt.getopt(args, "w", ["watch"])
-    except getopt.GetoptError as err:
-        print(err)
-        sys.exit(2)
-
-    watch = False
-    for opt, _ in opts:
-        if opt in ("-w", "--watch"):
-            watch = True
-
-    if watch:
+    if sys.argv[2:]=="-w" or sys.argv[2:]=="--watch":
         subprocess.run(["oc", "get", "-w", "jobs"])
     else:
         subprocess.run(["oc", "get", "jobs"])
+
 def bd(args): 
     print("bd called", args)
 
