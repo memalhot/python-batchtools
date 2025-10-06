@@ -6,6 +6,9 @@ import json
 def bj(args):
     help_bjobs = """\
             bjobs
+                Usage:
+                bjobs [-h] [-w | --watch]
+
                 Display the status of your jobs. This includes all jobs that have not been deleted.
 
                 Note:
@@ -14,24 +17,26 @@ def bj(args):
                 then it will not delete the job.
 
                 Tip:
-                Set WATCH=1 to have bjobs stay running and display changes in your jobs.
+                Set -w or --watch to have bjobs stay running and display changes in your jobs.
 
                 See also:
                 'brun -h' and the repository README.md for more documentation and examples.
             """
 
-    # cannot do string comparison bc argv is a list
+    valid = {"-h", "-w", "--watch"}
+
+    # check for invalid arguments
+    if any(arg not in valid for arg in args):
+        print(help_bjobs)
+        sys.exit(1)
+
     if "-h" in sys.argv[2:] or "--help" in sys.argv[2:]:
         print(help_bjobs)
-
     elif "-w" in sys.argv[2:] or "--watch" in sys.argv[2:]:
         print("Getting jobs with -w flag set")
-        ret=subprocess.run(["oc", "get", "-w", "jobs"], capture_output=True, text=True, check=True)
-        print(ret)
-
+        subprocess.run(["oc", "get", "-w", "jobs"])
     else:
-        ret=subprocess.run(["oc", "get", "jobs"], capture_output=True, text=True, check=True)
-        print(ret)
+        subprocess.run(["oc", "get", "jobs"])
 
 def bd(args): 
     print("bd called", args)
