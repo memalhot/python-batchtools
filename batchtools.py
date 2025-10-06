@@ -31,6 +31,7 @@ def bj(args):
 
     else:
         ret=subprocess.run(["oc", "get", "jobs"], capture_output=True, text=True, check=True)
+        print(ret)
 
 def bd(args): 
     print("bd called", args)
