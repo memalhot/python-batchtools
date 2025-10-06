@@ -4,6 +4,13 @@ import subprocess
 import json
 
 
+def bj(args):
+    """ display the status of jobs """
+    if args.watch:
+        subprocess.run(["oc", "get", "-w", "jobs"])
+    else:
+        subprocess.run(["oc", "get", "jobs"])
+
 def bd(args): 
     print("bd called", args)
 
@@ -25,15 +32,6 @@ def bd(args):
         name = w if "/" in w else f"workloads/{w}"
         subprocess.run(["oc", "delete", name])
 
-
-def bj(args): 
-
-    #ADD ERROR CATCHING
-    #ADD -W ARG
-    if args:
-        subprocess.run(["oc", "get", "-w", "jobs"])
-    else:
-        subprocess.run(["oc", "get", "jobs"])
 
 def bl(args):
     # CHECK IF ARGS PROVIDES PODS
@@ -70,10 +68,10 @@ def bp(args):
             print("No pods")
 
 def bs(args): 
-    print("bs called", args)
+    bps(args)
 
 def bq(args):
-    """ADD DOC STRING"""
+    """ Gets status of the queue and tallies the admitted, pending, reserved, and total GPUS for user visibility """
     try:
         result = subprocess.run(
             ["oc", "get", "clusterqueue", "-o", "json"],
@@ -121,26 +119,33 @@ def bq(args):
             f"{queueing}"
         )
 
+
+def bwk(args): 
+    """ gets specified gpu jobs or gets all gpu jobs """
+
 def bw(args): 
     print("bw called", args)
 
 def br(args): 
     print("br called", args)
     
-def bwk(args): 
-    print("bwk called", args)
 
 def main():
     valid_args = {"bd", "bj", "bl", "bp", "bs", "bq", "bw", "br", "bwk"}
 
     parser = argparse.ArgumentParser(description="Command-line tooling")
     subparsers = parser.add_subparsers(dest="command", required=True)
-
-    # Create subparsers for valid command
-    for cmd in valid_args:
-        sub = subparsers.add_parser(cmd, help=f"Run {cmd}")
-        if cmd == "bj":
-            sub.add_argument("-w", "--watch")
+    
+    if cmd == "bj":
+            sub.add_argument(
+                "-w", "--watch",
+                action="store_true",
+                help="bjobs \n Display the status of your jobs.  This include all jobs that have not been deleted. Note: jobs must be explicitly deleted after they have completed.  'brun' deletes by default.  However, if you specified WAIT=0 to 'brun' then it will not delete the job. Set WATCH=1 to have bjobs stay running and display changes in your jobs. See 'brun -h' and repository README.md for more documentation and examples."
+            )
+            sub.set_defaults(func=bj)
+    else:
+            # generic binding for other functions
+            sub.set_defaults(func=globals().get(cmd))
 
     args = parser.parse_args()
 
