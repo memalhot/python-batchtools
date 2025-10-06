@@ -9,20 +9,20 @@ def bj(args):
     help_bjobs = """\
             bjobs
                 Usage:
-                bjobs [-h] [-w | --watch]
+                    bjobs [-h] [-w | --watch]
 
-                Display the status of your jobs. This includes all jobs that have not been deleted.
+                    Display the status of your jobs. This includes all jobs that have not been deleted.
 
-                Note:
-                Jobs must be explicitly deleted after they have completed.
-                'brun' deletes jobs by default. However, if you specified WAIT=0 to 'brun',
-                then it will not delete the job.
+                    Note:
+                    Jobs must be explicitly deleted after they have completed.
+                    'brun' deletes jobs by default. However, if you specified WAIT=0 to 'brun',
+                    then it will not delete the job.
 
-                Tip:
-                Set -w or --watch to have bjobs stay running and display changes in your jobs.
+                    Tip:
+                    Set -w or --watch to have bjobs stay running and display changes in your jobs.
 
-                See also:
-                'brun -h' and the repository README.md for more documentation and examples.
+                    See also:
+                    'brun -h' and the repository README.md for more documentation and examples.
             """
 
     valid = {"-h", "-w", "--watch"}
@@ -98,16 +98,16 @@ def bs(args):
 def bq(args):
     help_bq="""\
             Usage:
-            bq [-h]
+                bq [-h]
 
-            Display the status of the GPU queues for the cluster.
+                Display the status of the GPU queues for the cluster.
 
-            This command shows the number of admitted (active), pending, and reserved jobs 
-            on each queue. It also displays how many GPUs service each queue and the 
-            queuing strategy being used.
+                This command shows the number of admitted (active), pending, and reserved jobs 
+                on each queue. It also displays how many GPUs service each queue and the 
+                queuing strategy being used.
 
-            See also:
-            See the repository README.md for more documentation and examples.
+                See also:
+                See the repository README.md for more documentation and examples.
         """
 
     valid = {"-h"}
