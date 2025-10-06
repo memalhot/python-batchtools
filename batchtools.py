@@ -291,7 +291,7 @@ if __name__ == "__main__":
 def br(args): 
     print("br called", args)
     
-    
+
 def main():
     valid_args = {"bd", "bj", "bl", "bp", "bs", "bq", "bw", "br", "bwk"}
 
@@ -313,6 +313,7 @@ def main():
             sub.set_defaults(func=globals().get(cmd))
 
     args = parser.parse_args()
+    print(args)
     args.func(args)
 
 
