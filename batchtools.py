@@ -293,7 +293,7 @@ def br(args):
     
 
 def main():
-    valid_args = {"bd", "bj", "bl", "bp", "bs", "bq", "bw", "br", "bwk", "-w", "--watch"}
+    valid_args = {"bd", "bj", "bl", "bp", "bs", "bq", "bw", "br", "bwk", "bj -w", "bj --watch"}
 
     parser = argparse.ArgumentParser(description="Command-line tooling")
     subparsers = parser.add_subparsers(dest="command", required=True)
