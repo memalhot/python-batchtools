@@ -117,7 +117,7 @@ def bq(args):
         print(help_bq)
         sys.exit(1)
 
-    if "-h" in argv[2:]:
+    if "-h" in sys.argv[2:]:
         print(help_bq)
     else:
         try:
