@@ -126,10 +126,6 @@ def bwk(args):
 
 def bw(args): 
     print("bw called", args)
-import argparse
-import sys
-import subprocess
-import json
 
 
 def bj(args):
@@ -257,42 +253,6 @@ def bw(args):
 def br(args): 
     print("br called", args)
     
-
-def main():
-    valid_args = {"bd", "bj", "bl", "bp", "bs", "bq", "bw", "br", "bwk"}
-
-    parser = argparse.ArgumentParser(description="Command-line tooling")
-    subparsers = parser.add_subparsers(dest="command", required=True)
-    
-    for cmd in valid_args:
-        sub = subparsers.add_parser(cmd, help=f"Run {cmd}")
-    if cmd == "bj":
-            sub.add_argument(
-                "-w", "--watch",
-                action="store_true",
-                help="bjobs \n Display the status of your jobs.  This include all jobs that have not been deleted. Note: jobs must be explicitly deleted after they have completed.  'brun' deletes by default.  However, if you specified WAIT=0 to 'brun' then it will not delete the job. Set WATCH=1 to have bjobs stay running and display changes in your jobs. See 'brun -h' and repository README.md for more documentation and examples."
-            )
-            sub.set_defaults(func=bj)
-    else:
-            sub.set_defaults(func=globals().get(cmd))
-
-    args = parser.parse_args()
-
-    # Lookup the function by name and call it
-    func = globals().get(args.command)
-    if func:
-        sys.exit(func(args))
-    else:
-        print(f"Unknown command {args.command}")
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main()
-
-def br(args): 
-    print("br called", args)
-    
-
 def main():
     parser = argparse.ArgumentParser(description="Command-line tooling")
     subparsers = parser.add_subparsers(dest="command", required=True)
