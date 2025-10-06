@@ -9,7 +9,8 @@ def bj(args):
     """Display status of jobs"""
     print(sys.argv[2:])
 
-    if sys.argv[2:]=="-w" or sys.argv[2:]=="--watch":
+    # cannot do string comparison bc argv is a list
+    if "-w" in sys.argv[2:] or "--watch" in sys.argv[2:]:
         print("here")
         subprocess.run(["oc", "get", "-w", "jobs"], stdout=subprocess.PIPE)
     else:
