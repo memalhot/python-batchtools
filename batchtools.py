@@ -98,7 +98,7 @@ def bs(args):
 def bq(args):
     help_bq="""\
             Usage:
-            bqstat [-h]
+            bq [-h]
 
             Display the status of the GPU queues for the cluster.
 
