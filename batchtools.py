@@ -62,8 +62,9 @@ def bp(args):
         jobs = ret.stdout.strip().split
         print(jobs)
         if jobs:
+            job_name="job=name"
             for j in jobs:
-                result = subprocess.run(["oc", "get", "pods", "-l", "job-name="j, "o", "name"])
+                result = subprocess.run(["oc", "get", "pods", "-l", job-name=j, "o", "name"])
         else:
             print("No pods")
 
@@ -103,13 +104,12 @@ def bq(args):
                         except (TypeError, ValueError):
                             continue
 
-        # Gather status values with defaults
+        # print zero if none
         admitted = status.get("admittedWorkloads", 0)
         pending = status.get("pendingWorkloads", 0)
         reserving = status.get("reservingWorkloads", 0)
         queueing = spec.get("queueingStrategy", "")
 
-        # Print formatted line
         print(
             f"{meta.get('name','')} \t"
             f"admitted: {admitted} "
