@@ -7,7 +7,7 @@ import getopt
 
 def bj(args):
     """ display status of jobs """
-    
+
     try:
         opts, _ = getopt.getopt(args, "w", ["watch"])
     except getopt.GetoptError as err:
@@ -265,7 +265,6 @@ def br(args):
     print("br called", args)
     
 def main():
-    """Main command dispatcher."""
     commands = {
         "bj": bj,
         "bd": bd,
@@ -280,12 +279,13 @@ def main():
 
     if len(sys.argv) < 2 or sys.argv[1] not in commands:
         print("Usage: python3 batchtools.py <command> [options]")
-        print("Available commands:", " ".join(commands.keys()))
         sys.exit(1)
 
     cmd = sys.argv[1]
     func = commands[cmd]
-    func(sys.argv[2:])  # pass the remaining args to the function
+
+    func(sys.argv[2:])
+
 
 
 if __name__ == "__main__":
