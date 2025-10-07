@@ -7,15 +7,12 @@ import json
 
 def help_string(args, help_string, valid):
     """ function to print help strings when needed """
+    # add something to check that supplied flags are not incorrect
 
-    if any(arg not in valid for arg in args):
-        print(help_string)
-        sys.exit(1)
-    elif "-h" in sys.argv[2:] or "--help" in sys.argv[2:]:
+    if "-h" in sys.argv[2:] or "--help" in sys.argv[2:]:
         print(help_string)
         sys.exit(0)
-    else:
-        return
+
 
 def bj(args):
     help_bjobs = """\
