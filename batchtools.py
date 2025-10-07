@@ -129,7 +129,7 @@ def bl(args):
                 print(sys.argv[i], "is not a pod, logs cannot be retrieved")
             else:
                 result = subprocess.run(["oc", "logs", sys.argv[i]], capture_output=True, text=True, check=True)
-                print(f"Logs for {p}:\n{result.stdout}")
+                print(f"Logs for {sys.argv[i]}:\n{result.stdout}")
     else:
         for p in pods:
             result = subprocess.run(["oc", "logs", p], capture_output=True, text=True, check=True)
