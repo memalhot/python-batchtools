@@ -114,7 +114,7 @@ def bl(args):
     valid = {"-h", "--help"}
     help_string(args, help_bl, valid)
 
-    ret = subprocess.run(["oc", "get", "pods"], capture_output=True, text=True, check=True)
+    ret = subprocess.run(["oc", "get", "pods", "-o", "name"], capture_output=True, text=True, check=True)
     pods = ret.stdout.strip().split
     print(pods)
 
@@ -264,7 +264,6 @@ def main():
     func = commands[cmd]
 
     func(sys.argv[2:])
-
 
 
 if __name__ == "__main__":
