@@ -124,7 +124,6 @@ def bl(args):
     # if not, print logs for every pod
     if args:
         for i in range(2, len(sys.argv)):
-            print(sys.argv[i])
             if sys.argv[i] not in pods:
                 print(sys.argv[i], "is not a pod, logs cannot be retrieved")
             else:
