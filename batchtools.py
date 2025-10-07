@@ -238,9 +238,9 @@ def main():
         "bd": bd,
         "bdel": bd,
         "bl": bl,
-        "blogs": bl;
+        "blogs": bl,
         "bp": bp,
-        "bpods": bp;
+        "bpods": bp,
         "bs": bps,
         "bps":bps,
         "bq": bq,
