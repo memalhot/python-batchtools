@@ -229,6 +229,8 @@ def bw(args):
 def br(args):
     print("br called")
 
+
+# CLEANUP
 def main():
     commands = {
         "bj": bj,
@@ -237,16 +239,16 @@ def main():
         "bdel": bd,
         "bl": bl,
         "blogs": bl;
-        "bpods": bp;
         "bp": bp,
+        "bpods": bp;
         "bs": bps,
         "bps":bps,
-        "bqstat":bq,
         "bq": bq,
-        "bwait":bw,
+        "bqstat":bq,
         "bw": bw,
-        "brun":br,
+        "bwait":bw,
         "br": br,
+        "brun":br,
         "bwk": bwk,
     }
 
