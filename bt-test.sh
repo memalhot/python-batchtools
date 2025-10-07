@@ -36,7 +36,7 @@ python3 batchtools.py bl thisisafakepod
 # python3 batchtools.py bq --help
 # python3 batchtools.py bq
 
-# echo "testing bj invalid commands"
+# echo "testing bq invalid commands"
 # python3 batchtools.py bq randomnewarg
 # python3 batchtools.py bq -z
 

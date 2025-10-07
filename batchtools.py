@@ -4,6 +4,7 @@ import json
 
 
 ### error catching needed for functions~~
+### ADD PYTHON START TO USAGE
 
 def help_string(args, help_string, valid):
     """ function to print help strings when needed """
@@ -45,6 +46,9 @@ def bj(args):
     else:
         subprocess.run(["oc", "get", "jobs"])
 
+def bwk(args): 
+    """ gets specified gpu jobs or gets all gpu jobs """
+
 
 # oc get workloads -o name
 # Error from server (Forbidden): workloads.kueue.x-k8s.io is forbidden: User "system:serviceaccount:bu-cs599-pmpp-cuda-51774f:csw-dev" cannot list resource "workloads" in API group "kueue.x-k8s.io" in the namespace "bu-cs599-pmpp-cuda-51774f"
@@ -85,7 +89,7 @@ def bd(args):
     if args:
         for i in range(2, len(sys.argv)):
             if sys.argv[i] not in workloads:
-                print(sys.arv[i], "is not cannot be found")
+                print(sys.arv[i], "is not a job and cannot be deleted")
             else:
                 subprocess.run(["oc", "delete", sys.argv[i]])
     else:
@@ -136,7 +140,24 @@ def bl(args):
 
 
 def bp(args):
-    # CHECK IF ARGS PROVIDES PODS
+    help_bp="""\
+        bp
+        Usage:
+            bp [-h | --help] [job-name [job-name ...]]
+
+            display the pod names of the specified batch jobs if no jobs are
+            specified then the pods of all current batch jobs will
+            be displayed.
+
+            See also:
+            See repository README.md for more documentation and examples.
+        """
+
+    valid = {"-h", "--help"}
+    help_string(args, help_bp, valid)
+
+    
+
     if not pods:
         ret = subprocess.run(["oc", "get", "jobs", "-o", "name"], capture_output=True, text=True, check=True)
 
@@ -211,11 +232,6 @@ def bq(args):
             f"GPUS:{total_gpu} "
             f"{queueing}"
         )
-
-
-def bwk(args): 
-    """ gets specified gpu jobs or gets all gpu jobs """
-
 
 def bps(args):
     print("bps called", args)
