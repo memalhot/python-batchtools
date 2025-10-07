@@ -145,7 +145,7 @@ def bp(args):
         Usage:
             bp [-h | --help] [job-name [job-name ...]]
 
-            display the pod names of the specified batch jobs if no jobs are
+            Display the pod names of the specified batch jobs. If no jobs are
             specified then the pods of all current batch jobs will
             be displayed.
 
@@ -156,20 +156,22 @@ def bp(args):
     valid = {"-h", "--help"}
     help_string(args, help_bp, valid)
 
-    
+    ret = subprocess.run(["oc", "get", "jobs", "-o", "name"], capture_output=True, text=True, check=True)
+    jobs = ret.stdout.strip().split
+    print(jobs)
 
-    if not pods:
-        ret = subprocess.run(["oc", "get", "jobs", "-o", "name"], capture_output=True, text=True, check=True)
+    if not jobs:
+        print("No jobs to display pod names of.")
 
-        jobs = ret.stdout.strip().split
-        print(jobs)
-        if jobs:
-            job_name="job=name"
-            for j in jobs:
-                # FIX THIS
-                result = subprocess.run(["oc", "get", "pods", "-l", job-name==j, "o", "name"])
-        else:
-            print("No pods")
+    if args:
+        for i in range(2, len(sys.argv[i])):
+            if argv[i] not in jobs:
+                print(sys.argv[i], "does not exist, cannot fetch pod name")
+            else:
+                subprocess.run(["oc", "get", "jobs", "-l", sys.argv[i], "-o", "name"])
+    else:
+        for j in jobs:
+            subprocess.run(["oc", "get", "jobs", "-l", j, "-o", "name"])
 
 
 def bq(args):

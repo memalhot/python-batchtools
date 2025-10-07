@@ -25,7 +25,8 @@ python3 batchtools.py bl -h
 python3 batchtools.py bl --help
 python3 batchtools.py bl
 python3 batchtools.py bl csw-dev-0
-#NEED TO ADD CASE WITH MULTIPLE PODS
+br nvidia-smi
+python3 batchtools.py bl csw-dev-0 csw-dev-1
 
 echo "testing bl invalid commands"
 python3 batchtools.py bl -z
