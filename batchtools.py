@@ -241,8 +241,11 @@ def main():
         "bp": bp,
         "bs": bps,
         "bps":bps,
+        "bqstat":bq,
         "bq": bq,
+        "bwait":bw,
         "bw": bw,
+        "brun":br,
         "br": br,
         "bwk": bwk,
     }
