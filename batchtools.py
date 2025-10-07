@@ -157,7 +157,7 @@ def bp(args):
     help_string(args, help_bp, valid)
 
     ret = subprocess.run(["oc", "get", "jobs", "-o", "name"], capture_output=True, text=True, check=True)
-    jobs = ret.stdout.strip().split
+    jobs = ret.stdout.strip().splitlines()
     print(jobs)
 
     if not jobs:
