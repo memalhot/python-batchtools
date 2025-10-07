@@ -1,7 +1,7 @@
 import sys
 import subprocess
 import json
-
+import openshift_client as oc
 
 ### error catching needed for functions~~
 ### ADD PYTHON START TO USAGE
@@ -161,6 +161,7 @@ def bp(args):
 
     if not jobs:
         print("No jobs to display pod names of.")
+        return
 
     if args:
         for i in range(2, len(sys.argv[i])):
@@ -172,7 +173,9 @@ def bp(args):
                 print(f"Pod name for {sys.argv[i]}:\n{pod_name.stdout}")
     else:
         for j in jobs:
-            job_name = f"job-name={j}"
+            job = j.split('/')[-1]
+            job_name = f"job-name={job}"
+            
             pod_name =subprocess.run(["oc", "get", "jobs", "-l", job_name, "-o", "name"])
             print(f"Pod for {j}:\n{pod_name.stdout}")
 
