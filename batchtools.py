@@ -54,9 +54,9 @@ def bj(args):
 def bd(args): 
 
     help_bd="""\
-        bdel
+        bd
         Usage:
-            bdel [-h | --help] [jobname [jobname...]]
+            bd [-h | --help] [jobname [jobname...]]
 
                 Delete the specified jobs. If none are specified, then all current jobs
                 are deleted ;-).
