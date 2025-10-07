@@ -11,7 +11,7 @@
 # echo "testing bd valid commands"
 # python3 batchtools.py bd -h
 # python3 batchtools.py bd --help
-# br nvidia-smi
+# br nvidia-smi &
 # python3 batchtools.py bd
 # #NEED TO ADD CASE FOR SPECIFIED WORKLOAD
 
@@ -45,7 +45,8 @@
 echo "testing valid bp commands"
 python3 batchtools.py bp -h
 python3 batchtools.py bp --help
-br nvidia-smi
+br nvidia-smi &
+sleep 3
 python3 batchtools.py bp
 
 
