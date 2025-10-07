@@ -12,6 +12,7 @@
 # python3 batchtools.py bd -h
 # python3 batchtools.py bd --help
 # br nvidia-smi &
+# sleep 3
 # python3 batchtools.py bd
 # #NEED TO ADD CASE FOR SPECIFIED WORKLOAD
 
