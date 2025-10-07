@@ -171,12 +171,7 @@ def bq(args):
     help_string(args, help_bq, valid)
 
     try:
-        result = subprocess.run(
-            ["oc", "get", "clusterqueue", "-o", "json"],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
+        result = subprocess.run(["oc", "get", "clusterqueue", "-o", "json"], check=True, capture_output=True, text=True)
         data = json.loads(result.stdout)
     except subprocess.CalledProcessError as e:
         sys.stderr.write(f"Error running oc: {e.stderr or e}\n")
