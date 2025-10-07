@@ -181,7 +181,7 @@ def bp(args):
 def bq(args):
     help_bq="""\
             Usage:
-                bq [-h | --help ]
+                bq [-h | --help ]capture_output=True, text=True, check=True)
 
                 Display the status of the GPU queues for the cluster.
 
