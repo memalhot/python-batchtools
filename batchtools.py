@@ -178,7 +178,7 @@ def bp(args):
             print(job)
             job_name = f"job-name={job}"
 
-            pod_name =subprocess.run(["oc", "get", "pods", "jobs", "-l", job_name, "-o", "name"])
+            pod_name =subprocess.run(["oc", "get", "pods", "-l", job_name, "-o", "name"])
             print(f"Pod for {j}:\n{pod_name.stdout}")
 
 def bq(args):
