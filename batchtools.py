@@ -116,8 +116,8 @@ def bl(args):
 
     ret = subprocess.run(['oc', 'get', 'pods', '-o', 'name'], capture_output=True, text=True, check=True)
 
-    pods = ret.stdout
-    print(pods)
+    # stdout returns string, save as array
+    pods=ret.stdout.strip().splitlines()
 
     if not pods:
         print("No pods to retrieve logs from")
@@ -135,7 +135,6 @@ def bl(args):
                 print(f"Logs for {p}:\n{result.stdout}")
     else:
         for p in pods:
-            (print(p))
             result = subprocess.run(["oc", "logs", p], capture_output=True, text=True, check=True)
             print(f"Logs for {p}:\n{result.stdout}")
 
