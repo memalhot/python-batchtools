@@ -15,7 +15,7 @@ def help_string(args, help_string, valid):
 
 
 def bj(args):
-    help_bjobs = """\
+    help_bj = """\
             bj
                 Usage:
                     bj [-h | --help] [-w | --watch]
@@ -36,7 +36,7 @@ def bj(args):
 
     # check for invalid args
     valid = {"-h", "--help", "-w", "--watch"}
-    help_string(args, help_bjobs, valid)
+    help_string(args, help_bj, valid)
 
     # MAYBE NEEDS MORE INFO FOR USER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     if "-w" in sys.argv[2:] or "--watch" in sys.argv[2:]:
@@ -46,7 +46,36 @@ def bj(args):
         subprocess.run(["oc", "get", "jobs"])
 
 def bwk(args): 
-    """ gets specified gpu jobs or gets all gpu jobs """
+    help_bwk = """\
+            bwk
+                Usage:
+                    bwk [-h | --help] [-w | --watch]
+
+                    Display the status of your workloads. This includes all workloads that have not been deleted.
+
+                    Note:
+                    Jobs must be explicitly deleted after they have completed.
+                    'brun' deletes workloads by default. However, if you specified WAIT=0 to 'brun',
+                    then it will not delete the job.
+
+                    Tip:
+                    Set -w or --watch to have bwk stay running and display changes in your jobs.
+
+                    See also:
+                    'brun -h' and the repository README.md for more documentation and examples.
+            """
+
+    # check for invalid args
+    valid = {"-h", "--help", "-w", "--watch"}
+    help_string(args, help_bwk, valid)
+
+    # MAYBE NEEDS MORE INFO FOR USER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    if "-w" in sys.argv[2:] or "--watch" in sys.argv[2:]:
+        print("Getting jobs with -w flag set")
+        subprocess.run(["oc", "get", "-w", "workloads"])
+    else:
+        subprocess.run(["oc", "get", "workloads"])
+
 
 
 # oc get workloads -o name
