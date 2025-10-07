@@ -167,12 +167,14 @@ def bp(args):
             if argv[i] not in jobs:
                 print(sys.argv[i], "does not exist, cannot fetch pod name")
             else:
-                pod_names=subprocess.run(["oc", "get", "jobs", "-l", sys.argv[i], "-o", "name"])
-                print(f"Logs for {sys.argv[i]}:\n{pod_names.stdout}")
+                job_name = f"job-name={sys.argv[i]}"
+                pod_name =subprocess.run(["oc", "get", "jobs", "-l", job-name, "-o", "name"])
+                print(f"Pod name for {sys.argv[i]}:\n{pod_name.stdout}")
     else:
         for j in jobs:
-            pod_names=subprocess.run(["oc", "get", "jobs", "-l", j, "-o", "name"])
-            print(f"Logs for {j}:\n{pod_names.stdout}")
+            job_name = f"job-name={j}"
+            pod_name =subprocess.run(["oc", "get", "jobs", "-l", job-name, "-o", "name"])
+            print(f"Pod for {j}:\n{pod_name.stdout}")
 
 def bq(args):
     help_bq="""\
