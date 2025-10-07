@@ -16,9 +16,9 @@ def help_string(args, help_string, valid):
 
 def bj(args):
     help_bjobs = """\
-            bjobs
+            bj
                 Usage:
-                    bjobs [-h | --help] [-w | --watch]
+                    bj [-h | --help] [-w | --watch]
 
                     Display the status of your jobs. This includes all jobs that have not been deleted.
 
@@ -28,7 +28,7 @@ def bj(args):
                     then it will not delete the job.
 
                     Tip:
-                    Set -w or --watch to have bjobs stay running and display changes in your jobs.
+                    Set -w or --watch to have bj stay running and display changes in your jobs.
 
                     See also:
                     'brun -h' and the repository README.md for more documentation and examples.

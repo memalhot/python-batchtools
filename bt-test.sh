@@ -1,8 +1,8 @@
 echo "testing bj valid commands"
 python3 batchtools.py bj -h
 python3 batchtools.py bj --help
-python3 batchtools.py bj -w
-python3 batchtools.py bj --watch
+# python3 batchtools.py bj -w
+# python3 batchtools.py bj --watch
 
 echo "testing bj invalid commands"
 python3 batchtools.py bj -z
