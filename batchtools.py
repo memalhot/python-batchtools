@@ -114,8 +114,9 @@ def bl(args):
     valid = {"-h", "--help"}
     help_string(args, help_bl, valid)
 
-    ret = subprocess.run(["oc", "get", "pods", "-o", "name"], capture_output=True, text=True, check=True)
-    pods = ret.stdout.strip().split
+    ret = subprocess.run(['oc', 'get', 'pods', '-o', 'name'], capture_output=True, text=True, check=True)
+
+    pods = ret.stdout
     print(pods)
 
     if not pods:
