@@ -168,12 +168,12 @@ def bp(args):
                 print(sys.argv[i], "does not exist, cannot fetch pod name")
             else:
                 job_name = f"job-name={sys.argv[i]}"
-                pod_name =subprocess.run(["oc", "get", "jobs", "-l", job-name, "-o", "name"])
+                pod_name =subprocess.run(["oc", "get", "jobs", "-l", job_name, "-o", "name"])
                 print(f"Pod name for {sys.argv[i]}:\n{pod_name.stdout}")
     else:
         for j in jobs:
             job_name = f"job-name={j}"
-            pod_name =subprocess.run(["oc", "get", "jobs", "-l", job-name, "-o", "name"])
+            pod_name =subprocess.run(["oc", "get", "jobs", "-l", job_name, "-o", "name"])
             print(f"Pod for {j}:\n{pod_name.stdout}")
 
 def bq(args):
