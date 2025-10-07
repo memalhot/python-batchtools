@@ -76,12 +76,15 @@ def bd(args):
 
     workloads = wk.stdout.strip().splitlines()
 
+    # only get workloads pertaining to gpu jobs
     workloads = [w for w in workloads if w.startswith("job-job") or w.startswith("workloads/job-job")]
 
     if not workloads:
         print ("No GPU worloads found to delete")
         return 
 
+    # if there are workloads provided, delete those
+    # if not, delete every workload
     if args:
         for i in range(2, len(sys.argv)):
             if sys.argv[i] not in workloads:
@@ -117,11 +120,17 @@ def bl(args):
 
     if not pods:
         print("No pods to retrieve logs from")
+        return
 
+    # if there are pods provided by the user to get logs of, print logs
+    # if not, print logs for every pod
     if args:
         for i in range(2, len(sys.argv)):
-            if sys.argv[i] in 
-
+            if sys.argv[i] not in pods:
+                print(sys.argv[i], "is not a pod, logs cannot be retrieved")
+            else:
+                result = subprocess.run(["oc", "logs", sys.argv[i]], capture_output=True, text=True, check=True)
+                print(f"Logs for {p}:\n{result.stdout}")
     else:
         for p in pods:
             result = subprocess.run(["oc", "logs", p], capture_output=True, text=True, check=True)
@@ -223,8 +232,12 @@ def br(args):
 def main():
     commands = {
         "bj": bj,
+        "bjobs": bj,
         "bd": bd,
+        "bdel": bd,
         "bl": bl,
+        "blogs": bl;
+        "bpods": bp;
         "bp": bp,
         "bs": bps,
         "bps":bps,
