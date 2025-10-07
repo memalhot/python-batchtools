@@ -134,51 +134,51 @@ def bq(args):
     help_string(args, help_bq, valid)
 
     try:
-            result = subprocess.run(
-                ["oc", "get", "clusterqueue", "-o", "json"],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            data = json.loads(result.stdout)
-        except subprocess.CalledProcessError as e:
-            sys.stderr.write(f"Error running oc: {e.stderr or e}\n")
-            sys.exit(e.returncode)
-        except json.JSONDecodeError:
-            sys.stderr.write("Failed to parse oc output as JSON.\n")
-            sys.exit(1)
+        result = subprocess.run(
+            ["oc", "get", "clusterqueue", "-o", "json"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        data = json.loads(result.stdout)
+    except subprocess.CalledProcessError as e:
+        sys.stderr.write(f"Error running oc: {e.stderr or e}\n")
+        sys.exit(e.returncode)
+    except json.JSONDecodeError:
+        sys.stderr.write("Failed to parse oc output as JSON.\n")
+        sys.exit(1)
 
-        # iterate through clusterqueues and compute totals
-        for item in data.get("items", []):
-            meta = item.get("metadata", {})
-            spec = item.get("spec", {})
-            status = item.get("status", {})
+    # iterate through clusterqueues and compute totals
+    for item in data.get("items", []):
+        meta = item.get("metadata", {})
+        spec = item.get("spec", {})
+        status = item.get("status", {})
 
-            # add up to get total GPU quota across all resourceGroups
-            total_gpu = 0
-            for rg in spec.get("resourceGroups", []):
-                for flav in rg.get("flavors", []):
-                    for res in flav.get("resources", []):
-                        if res.get("name") == "nvidia.com/gpu":
-                            try:
-                                total_gpu += int(res.get("nominalQuota", 0))
-                            except (TypeError, ValueError):
-                                continue
+        # add up to get total GPU quota across all resourceGroups
+        total_gpu = 0
+        for rg in spec.get("resourceGroups", []):
+            for flav in rg.get("flavors", []):
+                for res in flav.get("resources", []):
+                    if res.get("name") == "nvidia.com/gpu":
+                        try:
+                            total_gpu += int(res.get("nominalQuota", 0))
+                        except (TypeError, ValueError):
+                            continue
 
-            # print zero if none
-            admitted = status.get("admittedWorkloads", 0)
-            pending = status.get("pendingWorkloads", 0)
-            reserving = status.get("reservingWorkloads", 0)
-            queueing = spec.get("queueingStrategy", "")
+        # print zero if none
+        admitted = status.get("admittedWorkloads", 0)
+        pending = status.get("pendingWorkloads", 0)
+        reserving = status.get("reservingWorkloads", 0)
+        queueing = spec.get("queueingStrategy", "")
 
-            print(
-                f"{meta.get('name','')} \t"
-                f"admitted: {admitted} "
-                f"pending: {pending} "
-                f"reserved: {reserving} "
-                f"GPUS:{total_gpu} "
-                f"{queueing}"
-            )
+        print(
+            f"{meta.get('name','')} \t"
+            f"admitted: {admitted} "
+            f"pending: {pending} "
+            f"reserved: {reserving} "
+            f"GPUS:{total_gpu} "
+            f"{queueing}"
+        )
 
 
 def bwk(args): 
