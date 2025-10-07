@@ -48,6 +48,12 @@ def bj(args):
     else:
         subprocess.run(["oc", "get", "jobs"])
 
+
+# oc get workloads -o name
+# Error from server (Forbidden): workloads.kueue.x-k8s.io is forbidden: User "system:serviceaccount:bu-cs599-pmpp-cuda-51774f:csw-dev" cannot list resource "workloads" in API group "kueue.x-k8s.io" in the namespace "bu-cs599-pmpp-cuda-51774f"
+
+# do we expect user to delete workloads or jobs?
+
 def bd(args): 
 
     help_bd="""\
@@ -66,34 +72,60 @@ def bd(args):
     valid = {"-h", "--help"}
     help_string(args, help_bd, valid)
 
-    result = subprocess.run(["oc", "get", "workloads", "-o", "name"], capture_output=True, text=True, check=True)
-    workloads = result.stdout.strip().splitlines()
+    wk = subprocess.run(["oc", "get", "workloads", "-o", "name"], capture_output=True, text=True, check=True)
+
+    workloads = wk.stdout.strip().splitlines()
 
     workloads = [w for w in workloads if w.startswith("job-job") or w.startswith("workloads/job-job")]
 
     if not workloads:
         print ("No GPU worloads found to delete")
         return 
- 
-    for w in workloads:
-        print(w)
-        name = w if "/" in w else f"workloads/{w}"
-        subprocess.run(["oc", "delete", name])
+
+    if args:
+        for i in range(2, len(sys.argv)):
+            if sys.argv[i] not in workloads:
+                print(sys.arv[i], "is not cannot be found")
+            else:
+                subprocess.run(["oc", "delete", sys.argv[i]])
+    else:
+        for w in workloads:
+            print(w)
+            name = w if "/" in w else f"workloads/{w}"
+            subprocess.run(["oc", "delete", name])
 
 
 def bl(args):
-    # CHECK IF ARGS PROVIDES PODS
+    help_bl="""\
+        bl
+        Usage:
+            bl [-h | --help] [pod-name [pod-name ...]]
+
+                Display logs of specified pods. If none are specified then logs for all
+                pods of all current batch jobs will be display.
+
+                See also:
+                See repository README.md for more documentation and examples.
+    """
+
+    valid = {"-h", "--help"}
+    help_string(args, help_bl, valid)
+
     ret = subprocess.run(["oc", "get", "pods"], capture_output=True, text=True, check=True)
     pods = ret.stdout.strip().split
     print(pods)
 
-    if pods:
+    if not pods:
+        print("No pods to retrieve logs from")
+
+    if args:
+        for i in range(2, len(sys.argv)):
+            if sys.argv[i] in 
+
+    else:
         for p in pods:
             result = subprocess.run(["oc", "logs", p], capture_output=True, text=True, check=True)
             print(f"Logs for {p}:\n{result.stdout}")
-    else:
-        print("No pods to retrieve logs from")
-
 
 
 def bp(args):
@@ -111,8 +143,6 @@ def bp(args):
         else:
             print("No pods")
 
-def bs(args): 
-    bps(args)
 
 def bq(args):
     help_bq="""\
@@ -196,7 +226,8 @@ def main():
         "bd": bd,
         "bl": bl,
         "bp": bp,
-        "bs": bs,
+        "bs": bps,
+        "bps":bps,
         "bq": bq,
         "bw": bw,
         "br": br,
