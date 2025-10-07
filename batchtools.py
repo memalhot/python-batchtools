@@ -223,6 +223,10 @@ def bq(args):
 def bwk(args): 
     """ gets specified gpu jobs or gets all gpu jobs """
 
+
+def bps(args):
+    print("bps called", args)
+
 def bw(args): 
     print("bw called", args)
 
@@ -242,7 +246,7 @@ def main():
         "bp": bp,
         "bpods": bp,
         "bs": bps,
-        "bps":bps,
+        "bps": bps,
         "bq": bq,
         "bqstat":bq,
         "bw": bw,
