@@ -290,6 +290,9 @@ def bps(args):
                 $ VERBOSE=1 bps
                 $ bps wrk-3 wrk-4
                 $ GPU_NODES="wrk-3 wrk-4" bps
+
+            See also:
+            See the repository README.md for more documentation and examples.
     """
     valid = {"-h", "--help"}
     help_string(args, help_bps, valid)
