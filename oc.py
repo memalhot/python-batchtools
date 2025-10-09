@@ -64,21 +64,6 @@ def main():
     commands = {
         "bj": bj,
         "bjobs": bj,
-        "bd": bd,
-        "bdel": bd,
-        "bl": bl,
-        "blogs": bl,
-        "bp": bp,
-        "bpods": bp,
-        "bs": bps,
-        "bps": bps,
-        "bq": bq,
-        "bqstat":bq,
-        "bw": bw,
-        "bwait":bw,
-        "br": br,
-        "brun":br,
-        "bwk": bwk,
     }
 
     if len(sys.argv) < 2 or sys.argv[1] not in commands:
