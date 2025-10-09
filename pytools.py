@@ -1,7 +1,8 @@
 import sys
 import subprocess
 import json
-import openshift_client as oc
+from kubernetes import config, watch as k8s_watch
+from openshift.dynamic import DynamicClient
 
 #https://github.com/openshift/openshift-client-python
 
@@ -11,10 +12,6 @@ def help_string(args, help_string, valid):
     if "-h" in sys.argv[2:] or "--help" in sys.argv[2:]:
         print(help_string)
         sys.exit(0)
-
-#!/usr/bin/env python3
-import sys
-import openshift_client as oc
 
 def bj(args):
     help_bj = """\
@@ -36,34 +33,33 @@ def bj(args):
                     'brun -h' and the repository README.md for more documentation and examples.
             """
 
-    valid = {"-h", "--help", "-w", "--watch"}
-    help_string(args, help_bj, valid)
+    k8s_client = config.new_client_from_config()  # or config.load_incluster_config() in cluster
+    dyn = DynamicClient(k8s_client)
+    jobs_res = dyn.resources.get(api_version="batch/v1", kind="Job")
 
-    watch_flag = any(a in ("-w", "--watch") for a in args)
-
-    # Open a client context; this automatically loads your current kubeconfig
-    with oc.client() as client:
-        if watch_flag:
-            print("Getting jobs with -w flag set (Ctrl+C to stop)...")
-            for event in client.watch("jobs"):
-                etype = event["type"]
-                obj = event["object"]
-                name = obj.metadata.name
-                ns = obj.metadata.namespace
-                status = obj.status
-                print(f"{etype}: {ns}/{name} | active={status.get('active', 0)} | succeeded={status.get('succeeded', 0)}")
-        else:
-            print("Getting jobs...")
-            jobs = client.get("jobs")
-            for job in jobs.items:
-                name = job.metadata.name
-                ns = job.metadata.namespace
-                status = job.status
-                active = getattr(status, "active", 0) or 0
-                succeeded = getattr(status, "succeeded", 0) or 0
-                failed = getattr(status, "failed", 0) or 0
-                print(f"{ns}/{name}\tactive={active}\tsucceeded={succeeded}\tfailed={failed}")
-
+    if watch_flag:
+        print("Getting jobs with -w flag set (Ctrl+C to stop)...")
+        w = k8s_watch.Watch()
+        for evt in w.stream(jobs_res.list_for_all_namespaces):
+            obj = evt["object"]
+            ns = obj.metadata.namespace
+            name = obj.metadata.name
+            st = getattr(obj, "status", {}) or {}
+            active = getattr(st, "active", 0) or 0
+            succeeded = getattr(st, "succeeded", 0) or 0
+            failed = getattr(st, "failed", 0) or 0
+            print(f"{evt['type']}: {ns}/{name}\tactive={active}\tsucceeded={succeeded}\tfailed={failed}")
+    else:
+        print("Getting jobs...")
+        resp = jobs_res.list_for_all_namespaces()
+        for job in resp.items:
+            ns = job.metadata.namespace
+            name = job.metadata.name
+            st = getattr(job, "status", {}) or {}
+            active = getattr(st, "active", 0) or 0
+            succeeded = getattr(st, "succeeded", 0) or 0
+            failed = getattr(st, "failed", 0) or 0
+            print(f"{ns}/{name}\tactive={active}\tsucceeded={succeeded}\tfailed={failed}")
 
 def main():
     commands = {
