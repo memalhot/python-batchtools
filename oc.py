@@ -12,6 +12,9 @@ def help_string(args, help_string, valid):
         print(help_string)
         sys.exit(0)
 
+#!/usr/bin/env python3
+import sys
+import openshift_client as oc
 
 def bj(args):
     help_bj = """\
@@ -38,27 +41,28 @@ def bj(args):
 
     watch_flag = any(a in ("-w", "--watch") for a in args)
 
-    with oc.ApiClient() as api:
-        batch = oc.client.BatchV1Api(api)
-
+    # Open a client context; this automatically loads your current kubeconfig
+    with oc.client() as client:
         if watch_flag:
             print("Getting jobs with -w flag set (Ctrl+C to stop)...")
-            stream = oc.watch.Watch().stream(batch.list_job_for_all_namespaces)
-            for event in stream:
-                obj = event["object"]
+            for event in client.watch("jobs"):
                 etype = event["type"]
-                ns = obj.metadata.namespace
+                obj = event["object"]
                 name = obj.metadata.name
+                ns = obj.metadata.namespace
                 status = obj.status
-                print(f"{etype}: {ns}/{name} | active={status.active or 0} | succeeded={status.succeeded or 0}")
+                print(f"{etype}: {ns}/{name} | active={status.get('active', 0)} | succeeded={status.get('succeeded', 0)}")
         else:
             print("Getting jobs...")
-            jobs = batch.list_job_for_all_namespaces()
+            jobs = client.get("jobs")
             for job in jobs.items:
-                ns = job.metadata.namespace
                 name = job.metadata.name
+                ns = job.metadata.namespace
                 status = job.status
-                print(f"{ns}/{name} | active={status.active or 0} | succeeded={status.succeeded or 0}")
+                active = getattr(status, "active", 0) or 0
+                succeeded = getattr(status, "succeeded", 0) or 0
+                failed = getattr(status, "failed", 0) or 0
+                print(f"{ns}/{name}\tactive={active}\tsucceeded={succeeded}\tfailed={failed}")
 
 
 def main():
