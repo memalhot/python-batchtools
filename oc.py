@@ -3,6 +3,7 @@ import subprocess
 import json
 import openshift_client as oc
 
+#https://github.com/openshift/openshift-client-python
 
 def help_string(args, help_string, valid):
     """ function to print help strings when needed """
@@ -37,7 +38,7 @@ def bj(args):
 
     watch_flag = any(a in ("-w", "--watch") for a in args)
 
-    with oc.api_client.ApiClient() as api:
+    with oc.ApiClient() as api:
         batch = oc.client.BatchV1Api(api)
 
         if watch_flag:
