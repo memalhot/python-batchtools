@@ -32,13 +32,11 @@ def bj(args):
                     'brun -h' and the repository README.md for more documentation and examples.
             """
 
-    # Validate arguments
     valid = {"-h", "--help", "-w", "--watch"}
     help_string(args, help_bj, valid)
 
     watch_flag = any(a in ("-w", "--watch") for a in args)
 
-    # Open a project context
     with oc.api_client.ApiClient() as api:
         batch = oc.client.BatchV1Api(api)
 
@@ -60,3 +58,38 @@ def bj(args):
                 name = job.metadata.name
                 status = job.status
                 print(f"{ns}/{name} | active={status.active or 0} | succeeded={status.succeeded or 0}")
+
+
+def main():
+    commands = {
+        "bj": bj,
+        "bjobs": bj,
+        "bd": bd,
+        "bdel": bd,
+        "bl": bl,
+        "blogs": bl,
+        "bp": bp,
+        "bpods": bp,
+        "bs": bps,
+        "bps": bps,
+        "bq": bq,
+        "bqstat":bq,
+        "bw": bw,
+        "bwait":bw,
+        "br": br,
+        "brun":br,
+        "bwk": bwk,
+    }
+
+    if len(sys.argv) < 2 or sys.argv[1] not in commands:
+        print("Usage: python3 batchtools.py <command> [options]")
+        sys.exit(1)
+
+    cmd = sys.argv[1]
+    func = commands[cmd]
+
+    func(sys.argv[2:])
+
+
+if __name__ == "__main__":
+    sys.exit(main())
