@@ -230,8 +230,7 @@ def cmd_blog(args: argparse.Namespace) -> None:
 
     # Prefer oc.invoke/command passthrough for logs; otherwise use subprocess
     for p in pods:
-        print(f"
-===== Logs: {p} =====")
+        print(f"===== Logs: {p} =====")
         cmd = ["logs"]
         if args.follow:
             cmd.append("-f")
