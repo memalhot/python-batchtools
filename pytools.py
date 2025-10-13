@@ -1,80 +1,310 @@
+#!/usr/bin/env python3
+"""
+Batchtools (Python, oc package): Unified OpenShift helpers with native oc Python client — no bash.
+
+Subcommands:
+  • bjobs: List Jobs, optionally watch (-w/--watch)
+  • bpods: Show Pods belonging to Job(s) (by job-name label); all if none specified
+  • blog:  Show logs for Pods of given Job(s); all if none specified (accepts --follow)
+  • bdel:  Delete Job(s); delete all if none specified
+
+Global options:
+  • --login (optional)     Perform an oc login before subcommand
+  • --server URL           API server, e.g. https://api.example:6443
+  • --token TOKEN          Bearer token for login (safer via env: OC_TOKEN)
+  • --username USER        Basic auth username
+  • --password PASS        Basic auth password (discouraged; prefer --token)
+  • --insecure-skip-tls-verify   Pass through to oc login (bool flag)
+  • -n/--namespace NS      Namespace to target for all calls (default: current context)
+
+Implementation notes:
+  • Uses the Python oc client (either `openshift_client` or `oc`).
+  • Selectors (`oc.selector`) fetch Jobs/Pods; deletions use `selector.delete()`.
+  • `--watch` streams via `oc.invoke(["get","-w","jobs"])` (library handles the process lifecycle).
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import shlex
 import sys
-import subprocess
-import json
-from kubernetes import config, watch as k8s_watch
-from openshift.dynamic import DynamicClient
+from typing import Iterable, List, Sequence
 
-#https://github.com/openshift/openshift-client-python
+# --- import oc python package ---
+try:
+    import openshift_client as oc  # preferred (your earlier code path)
+except Exception:  # pragma: no cover
+    import oc  # fallback package name used by some installs
 
-def help_string(args, help_string, valid):
-    """ function to print help strings when needed """
-    # add something to check that supplied flags are not incorrect
-    if "-h" in sys.argv[2:] or "--help" in sys.argv[2:]:
-        print(help_string)
-        sys.exit(0)
 
-def bj(args):
-    help_bj = """\
-            bj
-                Usage:
-                    bj [-h | --help] [-w | --watch]
+# ------------------------------
+# Utilities
+# ------------------------------
 
-                    Display the status of your jobs. This includes all jobs that have not been deleted.
+def _print_err(msg: str) -> None:
+    sys.stderr.write(msg + "\n")
 
-                    Note:
-                    Jobs must be explicitly deleted after they have completed.
-                    'brun' deletes jobs by default. However, if you specified WAIT=0 to 'brun',
-                    then it will not delete the job.
 
-                    Tip:
-                    Set -w or --watch to have bj stay running and display changes in your jobs.
+def _strip_kind(resource: str) -> str:
+    """Convert 'jobs/foo' or 'pods/bar' to bare name."""
+    return resource.split("/", 1)[1] if "/" in resource else resource
 
-                    See also:
-                    'brun -h' and the repository README.md for more documentation and examples.
-            """
 
-    k8s_client = config.new_client_from_config()  # or config.load_incluster_config() in cluster
-    dyn = DynamicClient(k8s_client)
-    jobs_res = dyn.resources.get(api_version="batch/v1", kind="Job")
+# ------------------------------
+# Login handling (via oc.invoke)
+# ------------------------------
 
-    if watch_flag:
-        print("Getting jobs with -w flag set (Ctrl+C to stop)...")
-        w = k8s_watch.Watch()
-        for evt in w.stream(jobs_res.list_for_all_namespaces):
-            obj = evt["object"]
-            ns = obj.metadata.namespace
-            name = obj.metadata.name
-            st = getattr(obj, "status", {}) or {}
-            active = getattr(st, "active", 0) or 0
-            succeeded = getattr(st, "succeeded", 0) or 0
-            failed = getattr(st, "failed", 0) or 0
-            print(f"{evt['type']}: {ns}/{name}\tactive={active}\tsucceeded={succeeded}\tfailed={failed}")
+def do_login(args: argparse.Namespace) -> None:
+    if not args.login:
+        return
+
+    token = args.token or os.environ.get("OC_TOKEN")
+
+    cmd: List[str] = ["login"]
+    if args.server:
+        cmd += ["--server", args.server]
+    if token:
+        cmd += ["--token", token]
     else:
-        print("Getting jobs...")
-        resp = jobs_res.list_for_all_namespaces()
-        for job in resp.items:
-            ns = job.metadata.namespace
-            name = job.metadata.name
-            st = getattr(job, "status", {}) or {}
-            active = getattr(st, "active", 0) or 0
-            succeeded = getattr(st, "succeeded", 0) or 0
-            failed = getattr(st, "failed", 0) or 0
-            print(f"{ns}/{name}\tactive={active}\tsucceeded={succeeded}\tfailed={failed}")
+        if args.username:
+            cmd += ["-u", args.username]
+        if args.password:
+            cmd += ["-p", args.password]
+    if args.insecure_skip_tls_verify:
+        cmd.append("--insecure-skip-tls-verify=true")
 
-def main():
-    commands = {
-        "bj": bj,
-        "bjobs": bj,
-    }
+    _print_err("→ oc " + shlex.join(cmd))
+    res = oc.invoke(cmd)
+    if res.status != 0:
+        _print_err(res.err().strip() or "oc login failed")
+        sys.exit(res.status)
 
-    if len(sys.argv) < 2 or sys.argv[1] not in commands:
-        print("Usage: python3 batchtools.py <command> [options]")
-        sys.exit(1)
 
-    cmd = sys.argv[1]
-    func = commands[cmd]
+# ------------------------------
+# Helpers that use oc selectors
+# ------------------------------
 
-    func(sys.argv[2:])
+def _list_jobs(namespace: str | None) -> List[str]:
+    if namespace:
+        with oc.project(namespace):
+            objs = oc.selector("jobs").objects()
+    else:
+        objs = oc.selector("jobs").objects()
+    return [o.model.metadata.name for o in objs]
+
+
+def _pods_for_jobs(job_names: Iterable[str], namespace: str | None) -> List[str]:
+    pods: List[str] = []
+    if namespace:
+        ctx = oc.project(namespace)
+    else:
+        ctx = oc.ProjectContextManager.null_context()
+    with ctx:
+        for j in job_names:
+            jname = _strip_kind(j)
+            sel = oc.selector("pods", labels={"job-name": jname})
+            for o in sel.objects():
+                pods.append(o.model.metadata.name)
+    return pods
+
+
+# ------------------------------
+# Subcommands
+# ------------------------------
+
+def cmd_bjobs(args: argparse.Namespace) -> None:
+    if args.help_only:
+        print(
+            """
+   bjobs
+     Display the status of your jobs. This includes all jobs that have not been deleted.
+     Note: jobs must be explicitly deleted after they have completed. 'brun' deletes by default; however,
+           if you specified WAIT=0 to 'brun' then it will not delete the job.
+     Tip: use -w or --watch to stay running and display changes.
+            """.strip()
+        )
+        return
+
+    # Snapshot first
+    cmd = ["get", "jobs"]
+    if args.namespace:
+        cmd = ["-n", args.namespace] + cmd
+    res = oc.invoke(cmd)
+    sys.stdout.write(res.out())
+    sys.stdout.flush()
+
+    # Optional watch (stream)
+    if args.watch:
+        wcmd = ["get", "-w", "jobs"]
+        if args.namespace:
+            wcmd = ["-n", args.namespace] + wcmd
+        oc.invoke(wcmd, passthrough=True)  # stream to stdout/stderr
+
+
+def cmd_bpods(args: argparse.Namespace) -> None:
+    if args.help_only:
+        print(
+            """
+   bpods [job-name [job-name ...]]
+     Display the Pod names of the specified batch Jobs. If no Jobs are specified, display Pods of all current Jobs.
+     Uses the 'job-name=<job>' label to find Pods created by Jobs.
+            """.strip()
+        )
+        return
+
+    jobs = args.jobs if args.jobs else _list_jobs(args.namespace)
+    if not jobs:
+        _print_err("No Jobs found.")
+        return
+
+    pods = _pods_for_jobs(jobs, args.namespace)
+    for p in pods:
+        print(f"pods/{p}")
+
+
+def cmd_blog(args: argparse.Namespace) -> None:
+    if args.help_only:
+        print(
+            """
+   blog [job-or-pod [job-or-pod ...]]
+     Display logs of specified Pods, or if given Job name(s), logs for Pods owned by those Jobs.
+     If none are specified, logs for Pods of all current batch Jobs will be displayed.
+            """.strip()
+        )
+        return
+
+    targets = [str(t) for t in (args.targets or [])]
+    explicit_pods = [t for t in targets if t.startswith("pod/") or t.startswith("pods/")]
+    maybe_jobs    = [t for t in targets if t not in explicit_pods]
+
+    pods: List[str] = []
+    pods.extend([_strip_kind(p) for p in explicit_pods])
+
+    if maybe_jobs:
+        pods.extend(_pods_for_jobs(maybe_jobs, args.namespace))
+
+    if not targets:
+        jobs = _list_jobs(args.namespace)
+        pods = _pods_for_jobs(jobs, args.namespace)
+
+    if not pods:
+        _print_err("No Pods found to log.")
+        return
+
+    for p in pods:
+        cmd = ["logs"]
+        if args.follow:
+            cmd.append("-f")
+        if args.namespace:
+            cmd += ["-n", args.namespace]
+        cmd.append(p)
+        print(f"\n===== Logs: {p} =====")
+        oc.invoke(cmd, passthrough=True)
+
+
+def cmd_bdel(args: argparse.Namespace) -> None:
+    if args.help_only:
+        print(
+            """
+  bdel [jobname [jobname...]]
+    Delete the specified Jobs. If none are specified, delete ALL current Jobs.
+            """.strip()
+        )
+        return
+
+    jobs = args.jobs if args.jobs else _list_jobs(args.namespace)
+    if not jobs:
+        _print_err("No Jobs found to delete.")
+        return
+
+    # Use selector.delete() for each job name
+    ctx = oc.project(args.namespace) if args.namespace else oc.ProjectContextManager.null_context()
+    with ctx:
+        for j in jobs:
+            name = _strip_kind(j)
+            sel = oc.selector("job/" + name)
+            try:
+                sel.delete()
+                print(f"deleted job.batch/{name}")
+            except Exception as e:  # keep going on failures
+                _print_err(f"Failed to delete {name}: {e}")
+
+
+# ------------------------------
+# Argparse wiring
+# ------------------------------
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="batchtools",
+        description="Unified oc-based batch utilities using the Python oc client",
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
+
+    # Global flags
+    p.add_argument("--login", action="store_true", help="Run 'oc login' first using provided credentials")
+    p.add_argument("--server", help="API server URL for oc login")
+    p.add_argument("--token", help="Bearer token for oc login (or set env OC_TOKEN)")
+    p.add_argument("--username", help="Username for oc login (discouraged; prefer --token)")
+    p.add_argument("--password", help="Password for oc login (discouraged; prefer --token)")
+    p.add_argument("--insecure-skip-tls-verify", action="store_true", help="Skip TLS verification for login")
+    p.add_argument("-n", "--namespace", help="Namespace for all commands (defaults to current context)")
+
+    sub = p.add_subparsers(dest="command", required=True)
+
+    # bjobs
+    sp_jobs = sub.add_parser("bjobs", help="List jobs (optionally watch)")
+    sp_jobs.add_argument("-w", "--watch", action="store_true", help="Watch for changes")
+    sp_jobs.add_argument("--help-only", action="store_true", help="Print the legacy bjobs help text and exit")
+    sp_jobs.add_argument("-n", "--namespace", help=argparse.SUPPRESS)
+    sp_jobs.set_defaults(func=cmd_bjobs)
+
+    # bpods
+    sp_pods = sub.add_parser("bpods", help="List pods belonging to Jobs")
+    sp_pods.add_argument("jobs", nargs="*", help="Job names (omit to include all)")
+    sp_pods.add_argument("--help-only", action="store_true", help="Print the legacy bpods help text and exit")
+    sp_pods.add_argument("-n", "--namespace", help=argparse.SUPPRESS)
+    sp_pods.set_defaults(func=cmd_bpods)
+
+    # blog
+    sp_log = sub.add_parser("blog", help="Show logs for Pods of Job(s) or explicit pod refs")
+    sp_log.add_argument("targets", nargs="*", help="Job names and/or 'pods/<name>' refs")
+    sp_log.add_argument("-f", "--follow", action="store_true", help="Stream logs")
+    sp_log.add_argument("--help-only", action="store_true", help="Print the legacy blog help text and exit")
+    sp_log.add_argument("-n", "--namespace", help=argparse.SUPPRESS)
+    sp_log.set_defaults(func=cmd_blog)
+
+    # bdel
+    sp_del = sub.add_parser("bdel", help="Delete Jobs")
+    sp_del.add_argument("jobs", nargs="*", help="Job names (omit to delete all)")
+    sp_del.add_argument("--help-only", action="store_true", help="Print the legacy bdel help text and exit")
+    sp_del.add_argument("-n", "--namespace", help=argparse.SUPPRESS)
+    sp_del.set_defaults(func=cmd_bdel)
+
+    return p
+
+
+# ------------------------------
+# Main
+# ------------------------------
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    # Optional login
+    do_login(args)
+
+    # Namespace scoping for selectors is handled by context manager where needed
+
+    try:
+        func = getattr(args, "func")
+    except AttributeError:
+        parser.print_help()
+        return 2
+
+    func(args)
+    return 0
 
 
 if __name__ == "__main__":

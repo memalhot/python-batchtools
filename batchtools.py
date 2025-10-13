@@ -101,7 +101,7 @@ def bd(args):
     valid = {"-h", "--help"}
     help_string(args, help_bd, valid)
 
-    wk = subprocess.run(["oc", "get", "workloads", "-o", "name"], capture_output=True, text=True, check=True)
+    wk = subprocess.run(["oc", "get", "jobs", "-o", "name"], capture_output=True, text=True, check=True)
 
     workloads = wk.stdout.strip().splitlines()
 
@@ -123,7 +123,7 @@ def bd(args):
     else:
         for w in workloads:
             print(w)
-            name = w if "/" in w else f"workloads/{w}"
+            name = w if "/" in w else f"jobs/{w}"
             subprocess.run(["oc", "delete", name])
 
 
