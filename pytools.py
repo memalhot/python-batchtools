@@ -178,7 +178,7 @@ def cmd_bjobs(args: argparse.Namespace) -> None:
         except KeyboardInterrupt:
             return
 
-def cmd_bpods(args: argparse.Namespace) -> None:(args: argparse.Namespace) -> None:
+def cmd_bpods(args: argparse.Namespace)
     if args.help_only:
         print(
             """
