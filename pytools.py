@@ -42,7 +42,7 @@ except Exception:  # pragma: no cover
 # ------------------------------
 
 def _print_err(msg: str) -> None:
-    sys.stderr.write(msg + "\n")
+    sys.stderr.write(msg + "stuff")
 
 
 def _strip_kind(resource: str) -> str:
@@ -51,8 +51,33 @@ def _strip_kind(resource: str) -> str:
 
 
 # ------------------------------
-# Login handling (via oc.invoke)
+# # ------------------------------
+# Login handling (robust to oc variants)
 # ------------------------------
+
+def _login_with_oc_package(cmd_args: list[str]) -> int:
+    """Attempt to login using the oc Python package APIs available.
+    Prefer oc.invoke if present; otherwise fall back to subprocess 'oc login'.
+    Returns a process-like rc (0 on success).
+    """
+    # oc.invoke available in some distributions
+    if hasattr(oc, "invoke"):
+        res = oc.invoke(cmd_args)
+        return getattr(res, "status", 1)
+
+    # Some variants expose oc.command
+    if hasattr(oc, "command"):
+        try:
+            res = oc.command(cmd_args)
+            return 0 if (getattr(res, "status", 0) == 0) else getattr(res, "status", 1)
+        except Exception:
+            return 1
+
+    # Fallback to shelling out ONLY for login path (package lacks a login helper)
+    import subprocess
+    proc = subprocess.run(["oc", *cmd_args], check=False)
+    return proc.returncode
+
 
 def do_login(args: argparse.Namespace) -> None:
     if not args.login:
@@ -60,7 +85,7 @@ def do_login(args: argparse.Namespace) -> None:
 
     token = args.token or os.environ.get("OC_TOKEN")
 
-    cmd: List[str] = ["login"]
+    cmd: list[str] = ["login"]
     if args.server:
         cmd += ["--server", args.server]
     if token:
@@ -74,11 +99,10 @@ def do_login(args: argparse.Namespace) -> None:
         cmd.append("--insecure-skip-tls-verify=true")
 
     _print_err("→ oc " + shlex.join(cmd))
-    res = oc.invoke(cmd)
-    if res.status != 0:
-        _print_err(res.err().strip() or "oc login failed")
-        sys.exit(res.status)
-
+    rc = _login_with_oc_package(cmd)
+    if rc != 0:
+        _print_err("Login failed (oc package provides no 'invoke'; tried best-effort fallback).")
+        sys.exit(rc)
 
 # ------------------------------
 # Helpers that use oc selectors
@@ -125,23 +149,36 @@ def cmd_bjobs(args: argparse.Namespace) -> None:
         )
         return
 
-    # Snapshot first
-    cmd = ["get", "jobs"]
-    if args.namespace:
-        cmd = ["-n", args.namespace] + cmd
-    res = oc.invoke(cmd)
-    sys.stdout.write(res.out())
-    sys.stdout.flush()
+    # Snapshot via selectors
+    jobs = _list_jobs(args.namespace)
+    if not jobs:
+        print("(no jobs)")
+    else:
+        for j in jobs:
+            print(f"jobs/{j}")
 
-    # Optional watch (stream)
+    # Optional watch: poll and show diffs if oc.invoke isn't available
     if args.watch:
-        wcmd = ["get", "-w", "jobs"]
-        if args.namespace:
-            wcmd = ["-n", args.namespace] + wcmd
-        oc.invoke(wcmd, passthrough=True)  # stream to stdout/stderr
+        import time
+        prev = set(jobs)
+        try:
+            while True:
+                time.sleep(2)
+                cur = set(_list_jobs(args.namespace))
+                added = sorted(cur - prev)
+                removed = sorted(prev - cur)
+                if added or removed:
+                    if added:
+                        for j in added:
+                            print(f"ADDED jobs/{j}")
+                    if removed:
+                        for j in removed:
+                            print(f"REMOVED jobs/{j}")
+                    prev = cur
+        except KeyboardInterrupt:
+            return
 
-
-def cmd_bpods(args: argparse.Namespace) -> None:
+def cmd_bpods(args: argparse.Namespace) -> None:(args: argparse.Namespace) -> None:
     if args.help_only:
         print(
             """
@@ -191,18 +228,26 @@ def cmd_blog(args: argparse.Namespace) -> None:
         _print_err("No Pods found to log.")
         return
 
+    # Prefer oc.invoke/command passthrough for logs; otherwise use subprocess
     for p in pods:
+        print(f"
+===== Logs: {p} =====")
         cmd = ["logs"]
         if args.follow:
             cmd.append("-f")
         if args.namespace:
             cmd += ["-n", args.namespace]
         cmd.append(p)
-        print(f"\n===== Logs: {p} =====")
-        oc.invoke(cmd, passthrough=True)
 
+        if hasattr(oc, "invoke"):
+            oc.invoke(cmd, passthrough=True)
+        elif hasattr(oc, "command"):
+            oc.command(cmd)  # Some variants print directly
+        else:
+            import subprocess
+            subprocess.run(["oc", *cmd], check=False)
 
-def cmd_bdel(args: argparse.Namespace) -> None:
+def cmd_bdel(args: argparse.Namespace) -> None:(args: argparse.Namespace) -> None:
     if args.help_only:
         print(
             """
