@@ -47,11 +47,10 @@ def bj(watch: bool) -> int:
     """
     try:
         with oc.tracking() as t:
-            if "-w" in sys.argv[2:] or "--watch" in sys.argv[2:]:
+            if args.watch:
                 print("Getting jobs with -w flag set")
                 with oc.watch("jobs") as stream:
                     for event in stream:
-                        # Each event includes 'object' (the job) and 'type' (ADDED, MODIFIED, DELETED)
                         job = event['object']
                         print(f"[{event['type']}] {job.model.metadata.name}")
             else:
@@ -91,7 +90,6 @@ def main(argv=None) -> int:
         return cli_login(args.kubeconfig, args.server, args.token)
 
     elif args.cmd == "bj":
-        # Pass the 'watch' argument to the cli_bj function
         return bj(args.watch)
 
     # Should never reach here because subparsers are required
