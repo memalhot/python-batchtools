@@ -20,13 +20,10 @@ def cli_login(server: str, token: str, timeout_seconds: int = 60 * 1440) -> int:
             if oc.get_config_context() is None:
                 print(f" Logging into API server: {my_context.api_server}\n")
                 oc.invoke("login")
-
-            print(f"Current context: {oc.get_config_context()}")
-
-            pods = oc.selector("pods").objects()
-            print(f"Found: {len(pods)} pods")
-            return 0
-
+                    current_project = oc.get_project_name()
+        
+                print(f"Successfully logged in. Current project: {current_project}")
+                
         except OpenShiftPythonException:
             print("Error occurred during login or while querying pods")
             traceback.print_exc()
