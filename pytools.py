@@ -169,7 +169,7 @@ def bl(pod_names: list[str] | None = None) -> int:
                     print(f"\nLogs for {name}:\n{'-' * 40}")
                     try:
                         logs = oc.selector(f"pod/{name}").logs()
-                        print(logs.replace("\\n", "\n"))
+                        print(str(logs).replace("\\n", "\n"))
                     except OpenShiftPythonException:
                         print(f"Failed to retrieve logs for {name}.")
 
