@@ -46,7 +46,6 @@ def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 6
                         print("Login failed: no error message in tracking JSON.")
                 else:
                     print("Login failed: tracking data missing.")
-            return 1
 
 
 def build_parser() -> argparse.ArgumentParser:
