@@ -85,7 +85,7 @@ def bd(job_names: list[str] | None = None) -> int:
     """
     try:
         with oc.tracking() as t:
-            jobs = oc.selector("jobs").objects()
+            jobs = oc.selector("workloads").objects()
             if not jobs:
                 print("No jobs found.")
                 return 0
@@ -125,6 +125,61 @@ def bd(job_names: list[str] | None = None) -> int:
 
     return 0
 
+def bl(pod_names: list[str] | None = None) -> int:
+    """
+    Display logs of specified pods. If none are specified, display logs for all
+    pods in the current namespace.
+
+    Usage:
+        bl [-h | --help] [pod-name [pod-name ...]]
+
+    Description:
+        Display logs for the specified pods. If no pod names are provided,
+        logs for all pods of current batch jobs are shown.
+
+    See also:
+        See repository README.md for more documentation and examples.
+    """
+    try:
+        with oc.tracking() as t:
+            pods = oc.selector("pods").objects()
+
+            if not pods:
+                print("No pods to retrieve logs from.")
+                return 0
+
+            # Build a map of pod name → object for easy lookup
+            pod_dict = {pod.model.metadata.name: pod for pod in pods}
+
+            # If pod names provided by user, log only those
+            if pod_names:
+                for name in pod_names:
+                    if name not in pod_dict:
+                        print(f"{name} is not a valid pod — logs cannot be retrieved.")
+                        continue
+                    print(f"\nLogs for {name}:\n{'-' * 40}")
+                    try:
+                        logs = oc.selector(f"pod/{name}").logs().out()
+                        print(logs)
+                    except OpenShiftPythonException:
+                        print(f"Failed to retrieve logs for {name}.")
+            else:
+                # No args — log for all pods
+                for name, pod in pod_dict.items():
+                    print(f"\nLogs for {name}:\n{'-' * 40}")
+                    try:
+                        logs = oc.selector(f"pod/{name}").logs().out()
+                        print(logs)
+                    except OpenShiftPythonException:
+                        print(f"Failed to retrieve logs for {name}.")
+
+    except OpenShiftPythonException as e:
+        print("Error occurred while retrieving logs:")
+        print(e)
+        traceback.print_exc()
+        return 1
+
+    return 0
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tool", description="OpenShift CLI helper")
@@ -138,6 +193,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_bj = sub.add_parser("bj", help="Display the status of your jobs ('oc get jobs').")
     p_bj.add_argument("-w", "--watch", action="store_true", help="Stay running and display changes in your jobs.")
 
+    p_bl = sub.add_parser("bl", help="Display logs of specified pods ('oc logs').")
+    p_bl.add_argument("pod_names", nargs="*", help="Optional pod names to display logs for")
+
+    #CHANGE ME
     p_bd = sub.add_parser("bd", help="Display the status of your jobs ('oc get jobs').")
 
 
@@ -155,6 +214,11 @@ def main(argv=None) -> int:
 
     elif args.cmd == "bd":
         return bd(sys.argv)
+
+    elif args.cmd == "bl":
+        return bl(args.pod_names)
+
+
     
     # Should never reach here because subparsers are required
     return 2
