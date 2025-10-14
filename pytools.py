@@ -18,9 +18,7 @@ def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 6
     with oc.timeout(timeout_seconds), oc.tracking() as t, my_context:
         try:
             if oc.get_config_context() is None:
-                print(f" Logging into API server: {my_context.api_server}\n")
                 oc.invoke("login")
-                return 0
 
         except OpenShiftPythonException as e:
             # Print specific message if the token is invalid or expired
