@@ -21,11 +21,11 @@ def cli_login(server: str, token: str, timeout_seconds: int = 60 * 1440) -> int:
                 print(f" Logging into API server: {my_context.api_server}\n")
                 oc.invoke("login")
                 
-                current_project = oc.get_project_name()
-                print(f"Successfully logged in. Current project: {current_project}")
+        
+            current_project = oc.get_project_name()
+            print(f"Successfully logged in. Current project: {current_project}")
 
         except OpenShiftPythonException:
-            print("Error occurred during login or while querying pods")
             traceback.print_exc()
             # Show full tracking to help debug command/stream failures
             try:
