@@ -4,43 +4,6 @@ import traceback
 import argparse
 import sys
 
-# modeled off of: https://github.com/openshift/openshift-client-python/blob/main/examples/login.py
-# login with oc or login with the cli
-def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 60 * 30) -> int:
-    """
-    Log into an OpenShift cluster using openshift_client's Context.
-    If login fails, print the 'err' message from the JSON.
-    """
-    my_context = Context()
-    my_context.kubeconfig_path = kubeconfig
-    my_context.api_server = server
-    my_context.token = token
-
-    with oc.timeout(60 * 30), oc.tracking() as t, my_context:
-        if oc.get_config_context() is None:
-            print(f'Current context not set. Attempting to log onto API server: {my_context.api_server}\n')
-            try:
-                oc.invoke('login')
-            except OpenShiftPythonException:
-                # login failed, print error message
-                tracking_result = t.get_result().as_dict()
-                
-                action_error = None
-                for action in tracking_result.get('actions', []):
-                    if action.get('verb') == 'login' and not action.get('success'):
-                        action_error = action.get('err', 'An unknown error occurred during login.')
-                        break
-                
-                print('Login failed.')
-                if action_error:
-                    # Print ONLY the specific 'err' message from the action
-                    print(action_error.strip()) 
-                
-                exit(1)
-
-        print(f'Current context: {oc.get_config_context()}')
-
-
 # NEED TO FIX WATCH BUG
 def bj(watch: bool) -> int:
     """
@@ -70,19 +33,6 @@ def bj(watch: bool) -> int:
     return 0
 
 def bd(job_names: list[str] | None = None) -> int:
-    """
-    Delete specified GPU jobs, or all GPU jobs if none are specified.
-
-    Usage:
-        bd [-h | --help] [jobname [jobname...]]
-
-    Description:
-        Delete the specified jobs. If no jobs are specified, all current
-        GPU-related jobs will be deleted.
-
-    See also:
-        See the repository README.md for documentation and examples.
-    """
     try:
         with oc.tracking() as t:
             jobs = oc.selector("workloads").objects()
@@ -125,6 +75,7 @@ def bd(job_names: list[str] | None = None) -> int:
 
     return 0
 
+# WORKING . HELL YEAH
 def bl(pod_names: list[str] | None = None) -> int:
     """
     Display logs of specified pods. If none are specified, display logs for all
@@ -155,7 +106,7 @@ def bl(pod_names: list[str] | None = None) -> int:
             if pod_names:
                 for name in pod_names:
                     if name not in pod_dict:
-                        print(f"{name} is not a valid pod — logs cannot be retrieved.")
+                        print(f"{name} is not a valid pod. Logs cannot be retrieved.")
                         continue
                     print(f"\nLogs for {name}:\n{'-' * 40}")
                     try:
@@ -185,20 +136,62 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tool", description="OpenShift CLI helper")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    p_login = sub.add_parser("login", help="Log into an OpenShift cluster")
-    p_login.add_argument("-k", "--kubeconfig", required=True, help="oc kubeconfig")
-    p_login.add_argument("-s", "--server", required=True, help="API server URL")
-    p_login.add_argument("-t", "--token", required=True, help="Login token (e.g., oc whoami -t)")
+    # B JOBS
+    p_bj = sub.add_parser("bj", help="""\
+            bj
+                Usage:
+                    bj [-h | --help] [-w | --watch]
 
-    p_bj = sub.add_parser("bj", help="Display the status of your jobs ('oc get jobs').")
-    p_bj.add_argument("-w", "--watch", action="store_true", help="Stay running and display changes in your jobs.")
+                    Display the status of your jobs. This includes all jobs that have not been deleted.
 
-    p_bl = sub.add_parser("bl", help="Display logs of specified pods ('oc logs').")
+                    Note:
+                    Jobs must be explicitly deleted after they have completed.
+                    'brun' deletes jobs by default. However, if you specified WAIT=0 to 'brun',
+                    then it will not delete the job.
+
+                    Tip:
+                    Set -w or --watch to have bj stay running and display changes in your jobs.
+
+                    See also:
+                    'brun -h' and the repository README.md for more documentation and examples.
+        """)
+
+    p_bj.add_argument("-w", "--watch", action="store_true", help="")
+    
+
+    # B LOGS
+    p_bl = sub.add_parser("bl", help=""""\
+        bl
+            Usage:
+                bl [-h | --help] [pod-name [pod-name ...]]
+
+                    Display logs of specified pods. If none are specified then logs for all
+                    pods of all current batch jobs will be display.
+
+                    See also:
+                    See repository README.md for more documentation and examples.
+    """)
+
     p_bl.add_argument("pod_names", nargs="*", help="Optional pod names to display logs for")
 
-    #CHANGE ME
-    p_bd = sub.add_parser("bd", help="Display the status of your jobs ('oc get jobs').")
 
+    # B DEL
+    p_bd = sub.add_parser("bd", help=""""\
+        bd
+            Delete specified GPU jobs, or all GPU jobs if none are specified.
+
+            Usage:
+                bd [-h | --help] [jobname [jobname...]]
+
+            Description:
+                Delete the specified jobs. If no jobs are specified, all current
+                GPU-related jobs will be deleted.
+
+            See also:
+                See the repository README.md for documentation and examples.
+        """)
+
+    p_bd.add_argument("pod_names", nargs="*", help="Optional pod names to display logs for")
 
     return parser
 
@@ -213,7 +206,7 @@ def main(argv=None) -> int:
         return bj(args.watch)
 
     elif args.cmd == "bd":
-        return bd(sys.argv)
+        return bd(args.pod_names)
 
     elif args.cmd == "bl":
         return bl(args.pod_names)
