@@ -5,6 +5,7 @@ import argparse
 import sys
 
 # modeled off of: https://github.com/openshift/openshift-client-python/blob/main/examples/login.py
+# login with oc or login with the cli
 def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 60 * 30) -> int:
     """
     Log into an OpenShift cluster using openshift_client's Context.
@@ -43,9 +44,27 @@ def bj(watch: bool) -> int:
     """
     Display the status of gpu jobs using 'oc get jobs'.
     """
-    current_project = oc.get_project_name()
-    print(f"The current OpenShift project is: {current_project}")
+   try:
+        with oc.tracking() as t:
+            if "-w" in sys.argv[2:] or "--watch" in sys.argv[2:]:
+                print("Getting jobs with -w flag set")
+                with oc.watch("jobs") as stream:
+                    for event in stream:
+                        # Each event includes 'object' (the job) and 'type' (ADDED, MODIFIED, DELETED)
+                        job = event['object']
+                        print(f"[{event['type']}] {job.model.metadata.name}")
+            else:
+                jobs = oc.selector("jobs").objects()
+                if not jobs:
+                    print("No jobs found.")
+                    return
+                print(f"Found {len(jobs)} jobs:\n")
+                for job in jobs:
+                    print(f"- {job.model.metadata.name}")
 
+    except OpenShiftPythonException as e:
+        print("Error occurred while retrieving jobs:")
+        print(e)
 
 
 def build_parser() -> argparse.ArgumentParser:
