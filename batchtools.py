@@ -270,7 +270,7 @@ def main(argv=None) -> int:
     elif args.cmd == "bl":
         return bl(args.pod_names)
     
-    elif args.cmd == "bp"
+    elif args.cmd == "bp":
         return bp(args.job_names)
 
     
