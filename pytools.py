@@ -20,6 +20,7 @@ def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 6
             if oc.get_config_context() is None:
                 print(f" Logging into API server: {my_context.api_server}\n")
                 oc.invoke("login")
+                return 0
 
         except OpenShiftPythonException as e:
             # Print specific message if the token is invalid or expired
@@ -33,7 +34,7 @@ def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 6
         except Exception as e:
             print({"err": f"error: {str(e)}\n\n"})
             return 1
-            
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tool", description="OpenShift CLI helper")
     sub = parser.add_subparsers(dest="cmd", required=True)
