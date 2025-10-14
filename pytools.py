@@ -10,11 +10,13 @@ def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 6
     """
     Log into an OpenShift cluster using openshift_client's Context.
    """
+   print("here")
     my_context = Context()
     my_context.kubeconfig_path = kubeconfig
     my_context.api_server = server
     my_context.token = token
-
+    
+    print("here 2")
     with oc.timeout(timeout_seconds), oc.tracking() as t, my_context:
         try:
             if oc.get_config_context() is None:
