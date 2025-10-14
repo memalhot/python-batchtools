@@ -3,6 +3,7 @@ from openshift_client import Context, OpenShiftPythonException
 import traceback
 import argparse
 import sys
+from openshift import watch
 
 # modeled off of: https://github.com/openshift/openshift-client-python/blob/main/examples/login.py
 # login with oc or login with the cli
