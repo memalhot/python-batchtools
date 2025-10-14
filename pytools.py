@@ -2,6 +2,7 @@ import openshift_client as oc
 from openshift_client import Context, OpenShiftPythonException
 import traceback
 import argparse
+import sys
 
 def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 60 * 30) -> int:
     """
