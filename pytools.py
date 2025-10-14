@@ -54,7 +54,7 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     if args.cmd == "login":
-        return cli_login(args.kubeconfig, args.server, args.token)
+        return cli_login(args.server, args.token)
 
     # Should never reach here because subparsers are required
     return 2
