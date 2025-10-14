@@ -14,7 +14,7 @@ def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 6
     my_context.api_server = server
     my_context.token = token
 
-   with oc.timeout(60 * 30), oc.tracking() as t, my_context:
+    with oc.timeout(60 * 30), oc.tracking() as t, my_context:
         if oc.get_config_context() is None:
             print(f'Current context not set! Logging into API server: {my_context.api_server}\n')
             try:
