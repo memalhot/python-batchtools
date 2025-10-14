@@ -69,6 +69,62 @@ def bj(watch: bool) -> int:
 
     return 0
 
+def bd(job_names: list[str] | None = None) -> int:
+    """
+    Delete specified GPU jobs, or all GPU jobs if none are specified.
+
+    Usage:
+        bd [-h | --help] [jobname [jobname...]]
+
+    Description:
+        Delete the specified jobs. If no jobs are specified, all current
+        GPU-related jobs will be deleted.
+
+    See also:
+        See the repository README.md for documentation and examples.
+    """
+    try:
+        with oc.tracking() as t:
+            jobs = oc.selector("jobs").objects()
+            if not jobs:
+                print("No jobs found.")
+                return 0
+
+            # Filter for GPU-related jobs only
+            gpu_jobs = [
+                job for job in jobs
+                if job.model.metadata.name.startswith("job-job")
+                or job.model.metadata.name.startswith("workloads/job-job")
+            ]
+
+            if not gpu_jobs:
+                print("No GPU workloads found to delete.")
+                return 0
+
+            # If job names were passed, delete those only
+            if job_names:
+                found = [job.model.metadata.name for job in gpu_jobs]
+                for name in job_names:
+                    if name not in found:
+                        print(f"{name} is not a GPU job and cannot be deleted.")
+                        continue
+                    print(f"Deleting {name} ...")
+                    oc.invoke("delete", ["job", name])
+            else:
+                print("No job names provided — deleting all GPU workloads:\n")
+                for job in gpu_jobs:
+                    name = job.model.metadata.name
+                    print(f"Deleting {name} ...")
+                    oc.invoke("delete", ["job", name])
+
+    except OpenShiftPythonException as e:
+        print("Error occurred while deleting jobs:")
+        print(e)
+        traceback.print_exc()
+        return 1
+
+    return 0
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tool", description="OpenShift CLI helper")
