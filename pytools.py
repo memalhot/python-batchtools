@@ -1,11 +1,3 @@
-import argparse
-import sys
-import traceback
-
-import openshift_client as oc
-from openshift_client import OpenShiftPythonException, Context
-
-
 import openshift_client as oc
 from openshift_client import Context, OpenShiftPythonException
 import traceback
@@ -27,7 +19,7 @@ def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 6
                     oc.invoke("login")
 
                 proj = oc.get_project_name()
-                print(f"Successfully logged in. Current project: {proj}")
+                print(f"✅ Successfully logged in. Current project: {proj}")
                 return 0
 
         except OpenShiftPythonException:
@@ -46,10 +38,15 @@ def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 6
                         print("Login failed: no error message in tracking JSON.")
                 else:
                     print("Login failed: tracking data missing.")
-            except:
+            except Exception:
                 print("Login failed and tracking data unavailable.")
                 traceback.print_exc()
-                return 1
+            return 1
+
+        except Exception:
+            print("Unexpected error during login.")
+            traceback.print_exc()
+            return 1
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tool", description="OpenShift CLI helper")
