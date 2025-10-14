@@ -153,6 +153,9 @@ def main(argv=None) -> int:
     elif args.cmd == "bj":
         return bj(args.watch)
 
+    elif args.cmd == "bd":
+        return bd(sys.argv)
+    
     # Should never reach here because subparsers are required
     return 2
 
