@@ -10,7 +10,7 @@ def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 6
     """
     Log into an OpenShift cluster using openshift_client's Context.
    """
-   print("here")
+    print("here")
     my_context = Context()
     my_context.kubeconfig_path = kubeconfig
     my_context.api_server = server
