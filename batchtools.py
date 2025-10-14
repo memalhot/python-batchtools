@@ -143,6 +143,7 @@ def bp(job_names: list[str] | None = None) -> int:
                         continue
 
                     label = f"job-name={name}"
+                    print("HERE IS WHAT THE LABEL IS :", {label})
                     pods = oc.selector(f"pods -l {label}").objects()
 
                     if not pods:
