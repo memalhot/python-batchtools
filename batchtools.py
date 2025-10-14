@@ -122,6 +122,58 @@ def bl(pod_names: list[str] | None = None) -> int:
 
     return 0
 
+def bp(job_names: list[str] | None = None) -> int:
+    try:
+        with oc.tracking() as t:
+            jobs = oc.selector("jobs").objects()
+            if not jobs:
+                print("No jobs found.")
+                return 0
+
+            # job name job object dictionary
+            job_dict = {job.model.metadata.name: job for job in jobs}
+
+            # user provided job names
+            if job_names:
+                for name in job_names:
+                    if name not in job_dict:
+                        print(f"{name} does not exist; cannot fetch pod name.")
+                        continue
+
+                    label = f"job-name={name}"
+                    pods = oc.selector(f"pods -l {label}").objects()
+
+                    if not pods:
+                        print(f"No pods found for job {name}.")
+                        continue
+
+                    print(f"\nPods for {name}:\n{'-' * 40}")
+                    for pod in pods:
+                        print(f"- {pod.model.metadata.name}")
+
+            # user did not provide, show all pods for all jobs
+            else:
+                print("Displaying pods for all current batch jobs:\n")
+                for job_name in job_dict.keys():
+                    label = f"job-name={job_name}"
+                    pods = oc.selector(f"pods -l {label}").objects()
+
+                    if not pods:
+                        print(f"No pods found for job {job_name}.")
+                        continue
+
+                    print(f"\nPods for {job_name}:\n{'-' * 40}")
+                    for pod in pods:
+                        print(f"- {pod.model.metadata.name}")
+
+    except OpenShiftPythonException as e:
+        print("Error occurred while retrieving pods:")
+        print(e)
+        traceback.print_exc()
+        return 1
+
+    return 0
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tool", description="OpenShift CLI helper")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -181,7 +233,24 @@ def build_parser() -> argparse.ArgumentParser:
                 See the repository README.md for documentation and examples.
         """)
 
-    p_bd.add_argument("pod_names", nargs="*", help="Optional pod names to display logs for")
+    p_bd.add_argument("pod_names", nargs="*", help="Optional job names to delete jobs")
+
+    # B PODS
+    p_bp = sub.add_parser("bp", help="""\
+            bp
+            Usage:
+                bp [-h | --help] [job-name [job-name ...]]
+
+                Display the pod names of the specified batch jobs. If no jobs are
+                specified then the pods of all current batch jobs will
+                be displayed.
+
+                See also:
+                See repository README.md for more documentation and examples.
+        """)
+
+    p_bp.add_argument("job_names", nargs="*", help="Optional jobs to fetch the job name of")
+
 
     return parser
 
@@ -200,7 +269,9 @@ def main(argv=None) -> int:
 
     elif args.cmd == "bl":
         return bl(args.pod_names)
-
+    
+    elif args.cmd == "bp"
+        return bp(args.job_names)
 
     
     # Should never reach here because subparsers are required
