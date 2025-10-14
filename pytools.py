@@ -14,41 +14,19 @@ def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 6
     my_context.api_server = server
     my_context.token = token
 
-    with oc.tracking() as t:
-        try:
-            with oc.timeout(timeout_seconds), my_context:
-                if oc.get_config_context() is None:
-                    oc.invoke("login")
-
-                proj = oc.get_project_name()
-                print(f"✅ Successfully logged in. Current project: {proj}")
-                return 0
-
-        except OpenShiftPythonException:
-            # Extract the 'err' value from the tracking JSON and print it
+    with oc.timeout(60 * 30), oc.tracking() as t, my_context:
+        if oc.get_config_context() is None:
+            print(f'Current context not set! Logging into API server: {my_context.api_server}\n')
             try:
-                tracking_json = t.get_result().as_json(redact_streams=False)
-                actions = tracking_json.get("actions", [])
-                if actions:
-                    # Find first action with a non-empty 'err'
-                    for action in actions:
-                        err = action.get("err")
-                        if err:
-                            print(err.strip())
-                            break
-                    else:
-                        print("Login failed: no error message in tracking JSON.")
-                else:
-                    print("Login failed: tracking data missing.")
-            except Exception:
-                print("Login failed and tracking data unavailable.")
+                oc.invoke('login')
+            except OpenShiftPythonException:
+                print('error occurred logging into API Server')
                 traceback.print_exc()
-            return 1
+                print(f'Tracking:\n{t.get_result().as_json(redact_streams=False)}\n\n')
+                exit(1)
 
-        except Exception:
-            print("Unexpected error during login.")
-            traceback.print_exc()
-            return 1
+        print(f'Current context: {oc.get_config_context()}')
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tool", description="OpenShift CLI helper")
