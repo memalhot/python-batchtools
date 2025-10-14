@@ -4,6 +4,7 @@ import traceback
 import argparse
 import sys
 
+# modeled off of: https://github.com/openshift/openshift-client-python/blob/main/examples/login.py
 def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 60 * 30) -> int:
     """
     Log into an OpenShift cluster using openshift_client's Context.
@@ -38,6 +39,14 @@ def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 6
 
         print(f'Current context: {oc.get_config_context()}')
 
+def bj(watch: bool) -> int:
+    """
+    Display the status of gpu jobs using 'oc get jobs'.
+    """
+    current_project = oc.get_project_name()
+    print(f"The current OpenShift project is: {current_project}")
+
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tool", description="OpenShift CLI helper")
@@ -47,6 +56,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_login.add_argument("-k", "--kubeconfig", required=True, help="oc kubeconfig")
     p_login.add_argument("-s", "--server", required=True, help="API server URL")
     p_login.add_argument("-t", "--token", required=True, help="Login token (e.g., oc whoami -t)")
+
+    p_bj = sub.add_parser("bj", help="Display the status of your jobs ('oc get jobs').")
+    # Add -w / --watch flag, store as a boolean (True/False)
+    p_bj.add_argument("-w", "--watch", action="store_true", help="Stay running and display changes in your jobs.")
+
     return parser
 
 def main(argv=None) -> int:
@@ -55,6 +69,10 @@ def main(argv=None) -> int:
 
     if args.cmd == "login":
         return cli_login(args.kubeconfig, args.server, args.token)
+
+    elif args.cmd == "bj":
+        # Pass the 'watch' argument to the cli_bj function
+        return bj(args.watch)
 
     # Should never reach here because subparsers are required
     return 2
