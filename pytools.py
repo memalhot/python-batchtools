@@ -22,8 +22,8 @@ def cli_login(server: str, token: str, timeout_seconds: int = 60 * 1440) -> int:
                 oc.invoke("login")
                     current_project = oc.get_project_name()
         
-                print(f"Successfully logged in. Current project: {current_project}")
-                
+                    print(f"Successfully logged in. Current project: {current_project}")
+
         except OpenShiftPythonException:
             print("Error occurred during login or while querying pods")
             traceback.print_exc()
