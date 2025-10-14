@@ -32,6 +32,8 @@ def bj(watch: bool) -> int:
 
     return 0
 
+
+# NEEDS PERMISSIONS TO BE TESTED
 def bd(job_names: list[str] | None = None) -> int:
     try:
         with oc.tracking() as t:
@@ -40,7 +42,7 @@ def bd(job_names: list[str] | None = None) -> int:
                 print("No jobs found.")
                 return 0
 
-            # Filter for GPU-related jobs only
+            # only get gpu jobs (ASK ABOUT THIS)
             gpu_jobs = [
                 job for job in jobs
                 if job.model.metadata.name.startswith("job-job")
@@ -51,7 +53,7 @@ def bd(job_names: list[str] | None = None) -> int:
                 print("No GPU workloads found to delete.")
                 return 0
 
-            # If job names were passed, delete those only
+            # case where user provides jobs to delete
             if job_names:
                 found = [job.model.metadata.name for job in gpu_jobs]
                 for name in job_names:
@@ -61,7 +63,8 @@ def bd(job_names: list[str] | None = None) -> int:
                     print(f"Deleting {name} ...")
                     oc.invoke("delete", ["job", name])
             else:
-                print("No job names provided — deleting all GPU workloads:\n")
+                # case where user does not provide jobs to delete, delete all
+                print("No job names provided -> deleting all GPU workloads:\n")
                 for job in gpu_jobs:
                     name = job.model.metadata.name
                     print(f"Deleting {name} ...")
@@ -77,20 +80,6 @@ def bd(job_names: list[str] | None = None) -> int:
 
 # WORKING . HELL YEAH
 def bl(pod_names: list[str] | None = None) -> int:
-    """
-    Display logs of specified pods. If none are specified, display logs for all
-    pods in the current namespace.
-
-    Usage:
-        bl [-h | --help] [pod-name [pod-name ...]]
-
-    Description:
-        Display logs for the specified pods. If no pod names are provided,
-        logs for all pods of current batch jobs are shown.
-
-    See also:
-        See repository README.md for more documentation and examples.
-    """
     try:
         with oc.tracking() as t:
             pods = oc.selector("pods").objects()
@@ -99,10 +88,10 @@ def bl(pod_names: list[str] | None = None) -> int:
                 print("No pods to retrieve logs from.")
                 return 0
 
-            # Build a map of pod name → object for easy lookup
+            # dict of pod name and pod object
             pod_dict = {pod.model.metadata.name: pod for pod in pods}
 
-            # If pod names provided by user, log only those
+            # case where user provides pods
             if pod_names:
                 for name in pod_names:
                     if name not in pod_dict:
@@ -111,11 +100,12 @@ def bl(pod_names: list[str] | None = None) -> int:
                     print(f"\nLogs for {name}:\n{'-' * 40}")
                     try:
                         logs = oc.selector(f"pod/{name}").logs()
+                        # stringify and pretty print for readibility
                         print(str(logs).replace("\\n", "\n"))
                     except OpenShiftPythonException:
                         print(f"Failed to retrieve logs for {name}.")
             else:
-                # No args — log for all pods
+                # case where user provides no args, print logs for all pods
                 for name, pod in pod_dict.items():
                     print(f"\nLogs for {name}:\n{'-' * 40}")
                     try:

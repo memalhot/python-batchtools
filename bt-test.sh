@@ -27,6 +27,10 @@
 # python3 batchtools.py bl
 # python3 batchtools.py bl csw-dev-0
 # br nvidia-smi
+
+# ADD CASES HERE FOR 
+br sleep 20
+echo "something to get the jobs"
 # python3 batchtools.py bl csw-dev-0 csw-dev-1
 
 # echo "testing bl invalid commands"
