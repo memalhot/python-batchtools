@@ -168,7 +168,7 @@ def bl(pod_names: list[str] | None = None) -> int:
                 for name, pod in pod_dict.items():
                     print(f"\nLogs for {name}:\n{'-' * 40}")
                     try:
-                        logs = oc.selector(f"pod/{name}").logs().out()
+                        logs = oc.selector(f"pod/{name}").logs()
                         print(logs)
                     except OpenShiftPythonException:
                         print(f"Failed to retrieve logs for {name}.")
