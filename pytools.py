@@ -82,6 +82,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_bj = sub.add_parser("bj", help="Display the status of your jobs ('oc get jobs').")
     p_bj.add_argument("-w", "--watch", action="store_true", help="Stay running and display changes in your jobs.")
 
+    p_bd = sub.add_parser("bd", help="Display the status of your jobs ('oc get jobs').")
+
+
     return parser
 
 def main(argv=None) -> int:
