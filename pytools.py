@@ -31,10 +31,6 @@ def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 6
                 print({"err": f"error: {err_msg}\n\n"})
             return 1
 
-        except Exception as e:
-            print({"err": f"error: {str(e)}\n\n"})
-            return 1
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tool", description="OpenShift CLI helper")
     sub = parser.add_subparsers(dest="cmd", required=True)
