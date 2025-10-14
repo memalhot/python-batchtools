@@ -21,16 +21,19 @@ def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 6
                 print(f" Logging into API server: {my_context.api_server}\n")
                 oc.invoke("login")
 
-        except OpenShiftPythonException:
-            traceback.print_exc()
-            # Show full tracking to help debug command/stream failures
-            try:
-                print(f"Tracking:\n{t.get_result().as_json(redact_streams=False)}\n")
-            except Exception:
-                pass
+        except OpenShiftPythonException as e:
+            # Print specific message if the token is invalid or expired
+            err_msg = str(e)
+            if "Unauthorized" in err_msg or "token" in err_msg.lower():
+                print({"err": "error: The token provided is invalid or expired.\n\n"})
+            else:
+                print({"err": f"error: {err_msg}\n\n"})
             return 1
 
-
+        except Exception as e:
+            print({"err": f"error: {str(e)}\n\n"})
+            return 1
+            
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tool", description="OpenShift CLI helper")
     sub = parser.add_subparsers(dest="cmd", required=True)
