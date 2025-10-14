@@ -6,17 +6,15 @@ import openshift_client as oc
 from openshift_client import OpenShiftPythonException, Context
 
 
-def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 60 * 30) -> int:
+def cli_login(server: str, token: str, timeout_seconds: int = 60 * 30) -> int:
     """
     Log into an OpenShift cluster using openshift_client's Context.
    """
-    print("here")
     my_context = Context()
-    my_context.kubeconfig_path = kubeconfig
+    my_context.kubeconfig_path = "/tmp/kc"
     my_context.api_server = server
     my_context.token = token
     
-    print("here 2")
     with oc.timeout(timeout_seconds), oc.tracking() as t, my_context:
         try:
             if oc.get_config_context() is None:
@@ -40,14 +38,12 @@ def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 6
             return 1
 
 
-# --- Minimal CLI wiring below (optional but handy) ---
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tool", description="OpenShift CLI helper")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_login = sub.add_parser("login", help="Log into an OpenShift cluster")
-    p_login.add_argument("-k", "--kubeconfig", required=True, help="Path to kubeconfig to create/use")
     p_login.add_argument("-s", "--server", required=True, help="API server URL")
     p_login.add_argument("-t", "--token", required=True, help="Login token (e.g., oc whoami -t)")
     return parser
