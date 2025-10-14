@@ -18,7 +18,7 @@ def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 6
 
     with oc.timeout(60 * 30), oc.tracking() as t, my_context:
         if oc.get_config_context() is None:
-            print(f'Current context not set. Attempting to log onro API server: {my_context.api_server}\n')
+            print(f'Current context not set. Attempting to log onto API server: {my_context.api_server}\n')
             try:
                 oc.invoke('login')
             except OpenShiftPythonException:
@@ -40,6 +40,8 @@ def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 6
 
         print(f'Current context: {oc.get_config_context()}')
 
+
+# NEED TO FIX WATCH BUG
 def bj(watch: bool) -> int:
     """
     Display the status of gpu jobs using 'oc get jobs'.

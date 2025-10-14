@@ -83,48 +83,62 @@ def bwk(args):
 
 # do we expect user to delete workloads or jobs?
 
-def bd(args): 
-
-    help_bd="""\
-        bd
-        Usage:
-            bd [-h | --help] [jobname [jobname...]]
-
-                Delete the specified jobs. If none are specified, then all current jobs
-                are deleted ;-).
-
-                See also:
-                See repository README.md for more documentation and examples.
+def bd(job_names: list[str] | None = None) -> int:
     """
-    
-    # check for invalid arguments
-    valid = {"-h", "--help"}
-    help_string(args, help_bd, valid)
+    Delete specified GPU jobs, or all GPU jobs if none are specified.
 
-    wk = subprocess.run(["oc", "get", "jobs", "-o", "name"], capture_output=True, text=True, check=True)
+    Usage:
+        bd [-h | --help] [jobname [jobname...]]
 
-    workloads = wk.stdout.strip().splitlines()
+    Description:
+        Delete the specified jobs. If no jobs are specified, all current
+        GPU-related jobs will be deleted.
 
-    # only get workloads pertaining to gpu jobs
-    workloads = [w for w in workloads if w.startswith("job-job") or w.startswith("workloads/job-job")]
+    See also:
+        See the repository README.md for documentation and examples.
+    """
+    try:
+        with oc.tracking() as t:
+            jobs = oc.selector("jobs").objects()
+            if not jobs:
+                print("No jobs found.")
+                return 0
 
-    if not workloads:
-        print ("No GPU worloads found to delete")
-        return 
+            # Filter for GPU-related jobs only
+            gpu_jobs = [
+                job for job in jobs
+                if job.model.metadata.name.startswith("job-job")
+                or job.model.metadata.name.startswith("workloads/job-job")
+            ]
 
-    # if there are workloads provided, delete those
-    # if not, delete every workload
-    if args:
-        for i in range(2, len(sys.argv)):
-            if sys.argv[i] not in workloads:
-                print(sys.arv[i], "is not a job and cannot be deleted")
+            if not gpu_jobs:
+                print("No GPU workloads found to delete.")
+                return 0
+
+            # If job names were passed, delete those only
+            if job_names:
+                found = [job.model.metadata.name for job in gpu_jobs]
+                for name in job_names:
+                    if name not in found:
+                        print(f"{name} is not a GPU job and cannot be deleted.")
+                        continue
+                    print(f"Deleting {name} ...")
+                    oc.invoke("delete", ["job", name])
             else:
-                subprocess.run(["oc", "delete", sys.argv[i]])
-    else:
-        for w in workloads:
-            print(w)
-            name = w if "/" in w else f"jobs/{w}"
-            subprocess.run(["oc", "delete", name])
+                print("No job names provided — deleting all GPU workloads:\n")
+                for job in gpu_jobs:
+                    name = job.model.metadata.name
+                    print(f"Deleting {name} ...")
+                    oc.invoke("delete", ["job", name])
+
+    except OpenShiftPythonException as e:
+        print("Error occurred while deleting jobs:")
+        print(e)
+        traceback.print_exc()
+        return 1
+
+    return 0
+
 
 
 def bl(args):
