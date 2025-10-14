@@ -46,7 +46,10 @@ def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 6
                         print("Login failed: no error message in tracking JSON.")
                 else:
                     print("Login failed: tracking data missing.")
-
+            except:
+                print("Login failed and tracking data unavailable.")
+                traceback.print_exc()
+                return 1
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tool", description="OpenShift CLI helper")
