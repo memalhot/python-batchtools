@@ -30,6 +30,7 @@ def cli_login(server: str, token: str, timeout_seconds: int = 60 * 1440) -> int:
                 pass
             return 1
 
+    print("Logged in")
 
 
 def build_parser() -> argparse.ArgumentParser:
