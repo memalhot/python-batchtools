@@ -14,15 +14,30 @@ def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 6
     my_context.api_server = server
     my_context.token = token
 
-    with oc.timeout(60 * 30), oc.tracking() as t, my_context:
+   with oc.timeout(60 * 30), oc.tracking() as t, my_context:
         if oc.get_config_context() is None:
             print(f'Current context not set! Logging into API server: {my_context.api_server}\n')
             try:
                 oc.invoke('login')
             except OpenShiftPythonException:
-                print('error occurred logging into API Server')
-                traceback.print_exc()
-                print(f'Tracking:\n{t.get_result().as_json(redact_streams=False)}\n\n')
+                # The exception is caught, and the tracking object 't' contains
+                # the details of the failed 'oc login' action.
+                tracking_result = t.get_result().as_dict()
+                
+                # Look for the 'err' message in the failed action
+                action_error = None
+                for action in tracking_result.get('actions', []):
+                    # The 'login' action is the one that failed with the token error
+                    if action.get('verb') == 'login' and not action.get('success'):
+                        action_error = action.get('err', 'An unknown error occurred during login.')
+                        break
+                
+                print('Login failed.')
+                if action_error:
+                    # Print ONLY the specific 'err' message from the action
+                    print(action_error.strip()) 
+                
+                # Exit with a non-zero status code to indicate failure
                 exit(1)
 
         print(f'Current context: {oc.get_config_context()}')
