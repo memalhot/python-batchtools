@@ -6,7 +6,7 @@ import openshift_client as oc
 from openshift_client import OpenShiftPythonException, Context
 
 
-def cli_login(server: str, token: str, timeout_seconds: int = 60 * 30) -> int:
+def cli_login(server: str, token: str, timeout_seconds: int = 60 * 1440) -> int:
     """
     Log into an OpenShift cluster using openshift_client's Context.
    """
@@ -18,7 +18,7 @@ def cli_login(server: str, token: str, timeout_seconds: int = 60 * 30) -> int:
     with oc.timeout(timeout_seconds), oc.tracking() as t, my_context:
         try:
             if oc.get_config_context() is None:
-                print(f"Current context not set! Logging into API server: {my_context.api_server}\n")
+                print(f" Logging into API server: {my_context.api_server}\n")
                 oc.invoke("login")
 
             print(f"Current context: {oc.get_config_context()}")
