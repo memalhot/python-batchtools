@@ -20,9 +20,6 @@ def cli_login(server: str, token: str, timeout_seconds: int = 60 * 1440) -> int:
             if oc.get_config_context() is None:
                 print(f" Logging into API server: {my_context.api_server}\n")
                 oc.invoke("login")
-                
-                current_project = oc.get_project_name()
-                print(f"Successfully logged in. Current project: {current_project}")
 
         except OpenShiftPythonException:
             traceback.print_exc()
