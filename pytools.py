@@ -6,7 +6,7 @@ import openshift_client as oc
 from openshift_client import OpenShiftPythonException, Context
 
 
-def cli_login(server: str, token: str, timeout_seconds: int = 60 * 1440) -> int:
+def cli_login(server: str, token: str, timeout_seconds: int = 60 * 30) -> int:
     """
     Log into an OpenShift cluster using openshift_client's Context.
    """
@@ -29,7 +29,6 @@ def cli_login(server: str, token: str, timeout_seconds: int = 60 * 1440) -> int:
             except Exception:
                 pass
             return 1
-
 
 
 def build_parser() -> argparse.ArgumentParser:
