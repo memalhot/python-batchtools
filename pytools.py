@@ -6,28 +6,48 @@ import openshift_client as oc
 from openshift_client import OpenShiftPythonException, Context
 
 
+import openshift_client as oc
+from openshift_client import Context, OpenShiftPythonException
+import traceback
+
 def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 60 * 30) -> int:
     """
     Log into an OpenShift cluster using openshift_client's Context.
-   """
+    If login fails, only print the 'err' message from the JSON.
+    """
     my_context = Context()
     my_context.kubeconfig_path = kubeconfig
     my_context.api_server = server
     my_context.token = token
-    
-    with oc.timeout(timeout_seconds), oc.tracking() as t, my_context:
-        try:
-            if oc.get_config_context() is None:
-                oc.invoke("login")
 
-        except OpenShiftPythonException as e:
-            # Print specific message if the token is invalid or expired
-            err_msg = str(e)
-            if "Unauthorized" in err_msg or "token" in err_msg.lower():
-                print({"err": "error: The token provided is invalid or expired.\n\n"})
-            else:
-                print({"err": f"error: {err_msg}\n\n"})
+    with oc.tracking() as t:
+        try:
+            with oc.timeout(timeout_seconds), my_context:
+                if oc.get_config_context() is None:
+                    oc.invoke("login")
+
+                proj = oc.get_project_name()
+                print(f"Successfully logged in. Current project: {proj}")
+                return 0
+
+        except OpenShiftPythonException:
+            # Extract the 'err' value from the tracking JSON and print it
+            try:
+                tracking_json = t.get_result().as_json(redact_streams=False)
+                actions = tracking_json.get("actions", [])
+                if actions:
+                    # Find first action with a non-empty 'err'
+                    for action in actions:
+                        err = action.get("err")
+                        if err:
+                            print(err.strip())
+                            break
+                    else:
+                        print("Login failed: no error message in tracking JSON.")
+                else:
+                    print("Login failed: tracking data missing.")
             return 1
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tool", description="OpenShift CLI helper")
