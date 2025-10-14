@@ -44,7 +44,7 @@ def bj(watch: bool) -> int:
     """
     Display the status of gpu jobs using 'oc get jobs'.
     """
-   try:
+    try:
         with oc.tracking() as t:
             if "-w" in sys.argv[2:] or "--watch" in sys.argv[2:]:
                 print("Getting jobs with -w flag set")
