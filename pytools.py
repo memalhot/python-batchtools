@@ -46,7 +46,7 @@ def bj(watch: bool) -> int:
     """
     try:
         with oc.tracking() as t:
-            if args.watch:
+            if watch:
                 print("Getting jobs with -w flag set")
                 with oc.watch("jobs") as stream:
                     for event in stream:
@@ -65,6 +65,8 @@ def bj(watch: bool) -> int:
         print("Error occurred while retrieving jobs:")
         print(e)
 
+    return 0
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tool", description="OpenShift CLI helper")
@@ -76,7 +78,6 @@ def build_parser() -> argparse.ArgumentParser:
     p_login.add_argument("-t", "--token", required=True, help="Login token (e.g., oc whoami -t)")
 
     p_bj = sub.add_parser("bj", help="Display the status of your jobs ('oc get jobs').")
-    # Add -w / --watch flag, store as a boolean (True/False)
     p_bj.add_argument("-w", "--watch", action="store_true", help="Stay running and display changes in your jobs.")
 
     return parser
