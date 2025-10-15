@@ -200,9 +200,7 @@ def bp(job_names: list[str] | None = None) -> int:
     return 0
 
 def bq(args) -> int:
-    print("here")
     try:
-        print("got here")
         with oc.tracking() as t:
             clusterqueues = oc.selector("clusterqueue").objects()
             if not clusterqueues:
