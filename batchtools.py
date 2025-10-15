@@ -200,6 +200,7 @@ def bp(job_names: list[str] | None = None) -> int:
     return 0
 
 def bq(args) -> int:
+    print("here")
     try:
         print("got here")
         with oc.tracking() as t:
@@ -363,7 +364,8 @@ def main(argv=None) -> int:
     
     elif args.cmd == "bp":
         return bp(args.job_names)
-
+    elif args.cmd == "bq":
+        return bq()
     
     # Should never reach here because subparsers are required
     return 2
