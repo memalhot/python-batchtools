@@ -199,7 +199,7 @@ def bp(job_names: list[str] | None = None) -> int:
 
     return 0
 
-def bq(extra_args: list[str] | None = None) -> int:
+def bq(args) -> int:
     try:
         with oc.tracking() as _t:
             clusterqueues = oc.selector("clusterqueue").objects()
