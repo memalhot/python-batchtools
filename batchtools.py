@@ -365,7 +365,7 @@ def main(argv=None) -> int:
     elif args.cmd == "bp":
         return bp(args.job_names)
     elif args.cmd == "bq":
-        return bq()
+        return bq(args)
     
     # Should never reach here because subparsers are required
     return 2
