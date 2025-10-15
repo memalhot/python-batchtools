@@ -160,7 +160,6 @@ def bl(pod_names: list[str] | None = None) -> int:
     return 0
 
 
-# FIX ME
 def bp(job_names: list[str] | None = None) -> int:
     try:
         with oc.tracking() as t:
@@ -169,42 +168,28 @@ def bp(job_names: list[str] | None = None) -> int:
                 print("No jobs found.")
                 return 0
 
-            # job name job object dictionary
             job_dict = {job.model.metadata.name: job for job in jobs}
 
-            # user provided job names
+            def print_pods_for(job_name: str):
+                # pods with label job-name=<job_name>
+                pods = oc.selector("pods", labels={"job-name": job_name}).objects()
+                if not pods:
+                    print(f"No pods found for job {job_name}.")
+                    return
+                print(f"\nPods for {job_name}:\n{'-' * 40}")
+                for pod in pods:
+                    print(f"- {pod.model.metadata.name}")
+
             if job_names:
                 for name in job_names:
                     if name not in job_dict:
                         print(f"{name} does not exist; cannot fetch pod name.")
                         continue
-
-                    label = f"job-name={name}"
-                    print("HERE IS WHAT THE LABEL IS :", {label})
-                    pods = oc.selector(f"pods -l {label}").objects()
-
-                    if not pods:
-                        print(f"No pods found for job {name}.")
-                        continue
-
-                    print(f"\nPods for {name}:\n{'-' * 40}")
-                    for pod in pods:
-                        print(f"- {pod.model.metadata.name}")
-
-            # user did not provide, show all pods for all jobs
+                    print_pods_for(name)
             else:
                 print("Displaying pods for all current batch jobs:\n")
-                for job_name in job_dict.keys():
-                    label = f"job-name={job_name}"
-                    pods = oc.selector(f"pods -l {label}").objects()
-
-                    if not pods:
-                        print(f"No pods found for job {job_name}.")
-                        continue
-
-                    print(f"\nPods for {job_name}:\n{'-' * 40}")
-                    for pod in pods:
-                        print(f"- {pod.model.metadata.name}")
+                for name in job_dict.keys():
+                    print_pods_for(name)
 
     except OpenShiftPythonException as e:
         print("Error occurred while retrieving pods:")
@@ -213,7 +198,6 @@ def bp(job_names: list[str] | None = None) -> int:
         return 1
 
     return 0
-
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tool", description="OpenShift CLI helper")
