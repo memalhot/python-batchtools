@@ -235,11 +235,11 @@ def bq(args) -> int:
                 f"{queueing}"
             )
 
-except OpenShiftPythonException as e:
-    print("Error occurred while retrieving ClusterQueues:")
-    print(e)
-    traceback.print_exc()
-    return 1
+    except OpenShiftPythonException as e:
+        print("Error occurred while retrieving ClusterQueues:")
+        print(e)
+        traceback.print_exc()
+        return 1
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tool", description="OpenShift CLI helper")
