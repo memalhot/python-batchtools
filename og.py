@@ -308,98 +308,98 @@ def bps(args):
             See also:
             See the repository README.md for more documentation and examples.
     """
-    valid = {"-h", "--help"}
-    help_string(args, help_bps, valid)
+        valid = {"-h", "--help"}
+        help_string(args, help_bps, valid)
 
-    env_nodes = os.environ.get("GPU_NODES", "").split()
-    nodes = env_nodes if env_nodes else list(args)
+        env_nodes = os.environ.get("GPU_NODES", "").split()
+        nodes = env_nodes if env_nodes else list(args)
 
-    include_zero = False
-    try:
-        include_zero = int(os.environ.get("VERBOSE", "0")) != 0
-    except ValueError:
         include_zero = False
-
-    def run_for_node(node: str | None) -> int:
-
-        field_sel = "status.phase=Running"
-        if node:
-            field_sel += f",spec.nodeName={node}"
-
-        cmd = ["oc", "get", "pods", "--all-namespaces", "--field-selector", field_sel, "-o", "json"]
-
         try:
-            res = subprocess.run(cmd, text=True, capture_output=True, check=True)
-        except subprocess.CalledProcessError as e:
-            sys.stderr.write(f"Error running {' '.join(cmd)}: {e.stderr or e}\n")
-            return 1
+            include_zero = int(os.environ.get("VERBOSE", "0")) != 0
+        except ValueError:
+            include_zero = False
 
-        try:
-            data = json.loads(res.stdout)
-        except json.JSONDecodeError:
-            sys.stderr.write("Failed to parse oc output as JSON.\n")
-            return 1
+        def run_for_node(node: str | None) -> int:
 
-        # aggregate per node
-        by_node: dict[str, dict[str, object]] = {}
-        for item in data.get("items", []):
-            pod_node = (item.get("spec") or {}).get("nodeName")
-            if not pod_node:
-                continue
+            field_sel = "status.phase=Running"
+            if node:
+                field_sel += f",spec.nodeName={node}"
 
-            containers = (item.get("spec") or {}).get("containers") or []
-            ns = (item.get("metadata") or {}).get("namespace", "")
-            podname = (item.get("metadata") or {}).get("name", "")
-            pod_id = f"{ns}/{podname}"
+            cmd = ["oc", "get", "pods", "--all-namespaces", "--field-selector", field_sel, "-o", "json"]
 
-            any_container_counted = False
-            any_gpu_in_pod = False
-            gpu_sum_for_pod = 0
+            try:
+                res = subprocess.run(cmd, text=True, capture_output=True, check=True)
+            except subprocess.CalledProcessError as e:
+                sys.stderr.write(f"Error running {' '.join(cmd)}: {e.stderr or e}\n")
+                return 1
 
-            for ctr in containers:
-                reqs = ((ctr.get("resources") or {}).get("requests") or {})
-                gpu = reqs.get("nvidia.com/gpu", 0)
-                try:
-                    gpu_val = int(gpu)
-                except (TypeError, ValueError):
-                    gpu_val = 0
+            try:
+                data = json.loads(res.stdout)
+            except json.JSONDecodeError:
+                sys.stderr.write("Failed to parse oc output as JSON.\n")
+                return 1
 
-                # if >0 (default) or >=0 (VERBOSE)
-                if include_zero or gpu_val > 0:
-                    any_container_counted = True
-                    gpu_sum_for_pod += max(gpu_val, 0)
-                    if gpu_val > 0:
-                        any_gpu_in_pod = True
+            # aggregate per node
+            by_node: dict[str, dict[str, object]] = {}
+            for item in data.get("items", []):
+                pod_node = (item.get("spec") or {}).get("nodeName")
+                if not pod_node:
+                    continue
 
-            if not any_container_counted:
-                continue
+                containers = (item.get("spec") or {}).get("containers") or []
+                ns = (item.get("metadata") or {}).get("namespace", "")
+                podname = (item.get("metadata") or {}).get("name", "")
+                pod_id = f"{ns}/{podname}"
 
-            rec = by_node.setdefault(pod_node, {"total": 0, "pods": set()})
-            rec["total"] = int(rec["total"]) + gpu_sum_for_pod
-            if any_gpu_in_pod:
-                rec["pods"].add(pod_id)
+                any_container_counted = False
+                any_gpu_in_pod = False
+                gpu_sum_for_pod = 0
 
-        for n in sorted(by_node):
-            total = int(by_node[n]["total"])
-            pods = sorted(by_node[n]["pods"])
-            if total > 0:
-                suffix = (" " + " ".join(pods)) if pods else ""
-                print(f"{n}: BUSY {total}{suffix}")
-            else:
-                print(f"{n}: FREE")
+                for ctr in containers:
+                    reqs = ((ctr.get("resources") or {}).get("requests") or {})
+                    gpu = reqs.get("nvidia.com/gpu", 0)
+                    try:
+                        gpu_val = int(gpu)
+                    except (TypeError, ValueError):
+                        gpu_val = 0
 
-        return 0
+                    # if >0 (default) or >=0 (VERBOSE)
+                    if include_zero or gpu_val > 0:
+                        any_container_counted = True
+                        gpu_sum_for_pod += max(gpu_val, 0)
+                        if gpu_val > 0:
+                            any_gpu_in_pod = True
 
-    # for each node or for cluster
-    rc = 0
-    if nodes:
-        for n in nodes:
-            rc |= run_for_node(n)
-    else:
-        rc = run_for_node(None)
+                if not any_container_counted:
+                    continue
 
-    if rc:
-        sys.exit(rc)
+                rec = by_node.setdefault(pod_node, {"total": 0, "pods": set()})
+                rec["total"] = int(rec["total"]) + gpu_sum_for_pod
+                if any_gpu_in_pod:
+                    rec["pods"].add(pod_id)
+
+            for n in sorted(by_node):
+                total = int(by_node[n]["total"])
+                pods = sorted(by_node[n]["pods"])
+                if total > 0:
+                    suffix = (" " + " ".join(pods)) if pods else ""
+                    print(f"{n}: BUSY {total}{suffix}")
+                else:
+                    print(f"{n}: FREE")
+
+            return 0
+
+        # for each node or for cluster
+        rc = 0
+        if nodes:
+            for n in nodes:
+                rc |= run_for_node(n)
+        else:
+            rc = run_for_node(None)
+
+        if rc:
+            sys.exit(rc)
 
 def bw(args): 
     print("bw called", args)
