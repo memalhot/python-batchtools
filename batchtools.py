@@ -201,7 +201,6 @@ def bp(job_names: list[str] | None = None) -> int:
 
 def bq(args) -> int:
     try:
-        with oc.tracking() as t:
             clusterqueues = oc.selector("clusterqueue").objects()
             if not clusterqueues:
                 print("No ClusterQueues found.")
