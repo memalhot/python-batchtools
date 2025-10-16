@@ -4,6 +4,17 @@ import traceback
 import argparse
 import sys
 
+# helpers!
+
+def print_pods_for(job_name: str):
+    # pods with label job-name=<job_name>
+    pods = oc.selector("pods", labels={"job-name": job_name}).objects()
+    if not pods:
+        print(f"No pods found for job {job_name}.")
+        return
+    print(f"\nPods for {job_name}:\n{'-' * 40}")
+    for pod in pods:
+        print(f"- {pod.model.metadata.name}")
 
 #modeled off of: https://github.com/openshift/openshift-client-python/blob/main/examples/login.py
 # login with oc or login with the cli
@@ -168,16 +179,6 @@ def bp(job_names: list[str] | None = None) -> int:
 
         job_dict = {job.model.metadata.name: job for job in jobs}
 
-        def print_pods_for(job_name: str):
-            # pods with label job-name=<job_name>
-            pods = oc.selector("pods", labels={"job-name": job_name}).objects()
-            if not pods:
-                print(f"No pods found for job {job_name}.")
-                return
-            print(f"\nPods for {job_name}:\n{'-' * 40}")
-            for pod in pods:
-                print(f"- {pod.model.metadata.name}")
-
         if job_names:
             for name in job_names:
                 if name not in job_dict:
@@ -228,10 +229,10 @@ def bq(args) -> int:
 
             print(
                 f"{meta.get('name', '')}\t"
-                f"admitted: {admitted} "
-                f"pending: {pending} "
-                f"reserved: {reserving} "
-                f"GPUs: {total_gpu} "
+                f"admitted: {admitted}\t"
+                f"pending: {pending}\t"
+                f"reserved: {reserving}\t"
+                f"GPUs: {total_gpu}\t"
                 f"{queueing}"
             )
 
