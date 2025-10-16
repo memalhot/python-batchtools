@@ -134,6 +134,7 @@ def bl(pod_names: list[str] | None = None) -> int:
                 print(f"\nLogs for {name}:\n{'-' * 40}")
                 try:
                     logs = oc.selector(f"pod/{name}").logs()
+
                     # ⋆ ˚｡⋆୨୧˚ stringify and pretty print for readibility ⋆ ˚｡⋆୨୧˚ lol
                     print(str(logs).replace("\\n", "\n"))
                 except OpenShiftPythonException:
@@ -144,7 +145,6 @@ def bl(pod_names: list[str] | None = None) -> int:
                 print(f"\nLogs for {name}:\n{'-' * 40}")
                 try:
                     # MCHECK: EXTRAPOLATE LOGIC INTO FUNCTION
-
                     logs = oc.selector(f"pod/{name}").logs()
                     print(str(logs).replace("\\n", "\n"))
                 except OpenShiftPythonException:
@@ -221,11 +221,11 @@ def bq(args) -> int:
                             except (TypeError, ValueError):
                                 continue
 
-            admitted = status.get("admittedWorkloads", 0) or 0
-            pending = status.get("pendingWorkloads", 0) or 0
-            reserving = status.get("reservingWorkloads", 0) or 0
-            queueing = spec.get("queueingStrategy", "") or ""
-
+            admitted = status.get("admittedWorkloads", 0)
+            pending = status.get("pendingWorkloads", 0)
+            reserving = status.get("reservingWorkloads", 0)
+            queueing = spec.get("queueingStrategy", "")
+            
             print(
                 f"{meta.get('name', '')}\t"
                 f"admitted: {admitted} "
