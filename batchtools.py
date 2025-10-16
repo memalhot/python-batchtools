@@ -41,27 +41,26 @@ def cli_login(kubeconfig: str, server: str, token: str, timeout_seconds: int = 6
 
         print(f'Current context: {oc.get_config_context()}')
 
-# NEED TO FIX WATCH BUG
+# MCHECK: NEED TO FIX WATCH BUG
 def bj(watch: bool) -> int:
     """
     Display the status of gpu jobs using 'oc get jobs'.
     """
     try:
-        with oc.tracking() as t:
-            if watch:
-                print("Getting jobs with -w flag set")
-                with oc.watch("jobs") as stream:
-                    for event in stream:
-                        job = event['object']
-                        print(f"[{event['type']}] {job.model.metadata.name}")
-            else:
-                jobs = oc.selector("jobs").objects()
-                if not jobs:
-                    print("No jobs found.")
-                    return
-                print(f"Found {len(jobs)} jobs:\n")
-                for job in jobs:
-                    print(f"- {job.model.metadata.name}")
+        if watch:
+            # print("Getting jobs with -w flag set")
+            # with oc.watch("jobs") as stream:
+            #     for event in stream:
+            #         job = event['object']
+            #         print(f"[{event['type']}] {job.model.metadata.name}")
+        else:
+            jobs = oc.selector("jobs").objects()
+            if not jobs:
+                print("No jobs found.")
+                return
+            print(f"Found {len(jobs)} jobs:\n")
+            for job in jobs:
+                print(f"- {job.model.metadata.name}")
 
     except OpenShiftPythonException as e:
         print("Error occurred while retrieving jobs:")
@@ -70,42 +69,41 @@ def bj(watch: bool) -> int:
     return 0
 
 
-# NEEDS PERMISSIONS TO BE TESTED
+# MCHECK: NEEDS PERMISSIONS TO BE TESTED
 def bd(job_names: list[str] | None = None) -> int:
     try:
-        with oc.tracking() as t:
-            jobs = oc.selector("workloads").objects()
-            if not jobs:
-                print("No jobs found.")
-                return 0
+        jobs = oc.selector("workloads").objects()
+        if not jobs:
+            print("No jobs found.")
+            return 0
 
-            # only get gpu jobs (ASK ABOUT THIS)
-            gpu_jobs = [
-                job for job in jobs
-                if job.model.metadata.name.startswith("job-job")
-                or job.model.metadata.name.startswith("workloads/job-job")
-            ]
+        # only get gpu jobs (ASK ABOUT THIS)
+        gpu_jobs = [
+            job for job in jobs
+            if job.model.metadata.name.startswith("job-job")
+            or job.model.metadata.name.startswith("workloads/job-job")
+        ]
 
-            if not gpu_jobs:
-                print("No GPU workloads found to delete.")
-                return 0
+        if not gpu_jobs:
+            print("No GPU workloads to delete.")
+            return 0
 
-            # case where user provides jobs to delete
-            if job_names:
-                found = [job.model.metadata.name for job in gpu_jobs]
-                for name in job_names:
-                    if name not in found:
-                        print(f"{name} is not a GPU job and cannot be deleted.")
-                        continue
-                    print(f"Deleting {name} ...")
-                    oc.invoke("delete", ["job", name])
-            else:
-                # case where user does not provide jobs to delete, delete all
-                print("No job names provided -> deleting all GPU workloads:\n")
-                for job in gpu_jobs:
-                    name = job.model.metadata.name
-                    print(f"Deleting {name} ...")
-                    oc.invoke("delete", ["job", name])
+        # case where user provides jobs to delete
+        if job_names:
+            found = [job.model.metadata.name for job in gpu_jobs]
+            for name in job_names:
+                if name not in found:
+                    print(f"{name} is not a GPU job and cannot be deleted.")
+                    continue
+                print(f"Deleting {name} ...")
+                oc.invoke("delete", ["job", name])
+        else:
+            # case where user does not provide jobs to delete, delete all
+            print("No job names provided -> deleting all GPU workloads:\n")
+            for job in gpu_jobs:
+                name = job.model.metadata.name
+                print(f"Deleting {name} ...")
+                oc.invoke("delete", ["job", name])
 
     except OpenShiftPythonException as e:
         print("Error occurred while deleting jobs:")
@@ -118,38 +116,39 @@ def bd(job_names: list[str] | None = None) -> int:
 # WORKING . HELL YEAH
 def bl(pod_names: list[str] | None = None) -> int:
     try:
-        with oc.tracking() as t:
-            pods = oc.selector("pods").objects()
+        pods = oc.selector("pods").objects()
 
-            if not pods:
-                print("No pods to retrieve logs from.")
-                return 0
+        if not pods:
+            print("No pods to retrieve logs from.")
+            return 0
 
-            # dict of pod name and pod object
-            pod_dict = {pod.model.metadata.name: pod for pod in pods}
+        # dict of pod name and pod object
+        pod_dict = {pod.model.metadata.name: pod for pod in pods}
 
-            # case where user provides pods
-            if pod_names:
-                for name in pod_names:
-                    if name not in pod_dict:
-                        print(f"{name} is not a valid pod. Logs cannot be retrieved.")
-                        continue
-                    print(f"\nLogs for {name}:\n{'-' * 40}")
-                    try:
-                        logs = oc.selector(f"pod/{name}").logs()
-                        # ⋆ ˚｡⋆୨୧˚ stringify and pretty print for readibility ⋆ ˚｡⋆୨୧˚ lol
-                        print(str(logs).replace("\\n", "\n"))
-                    except OpenShiftPythonException:
-                        print(f"Failed to retrieve logs for {name}.")
-            else:
-                # case where user provides no args, print logs for all pods
-                for name, pod in pod_dict.items():
-                    print(f"\nLogs for {name}:\n{'-' * 40}")
-                    try:
-                        logs = oc.selector(f"pod/{name}").logs()
-                        print(str(logs).replace("\\n", "\n"))
-                    except OpenShiftPythonException:
-                        print(f"Failed to retrieve logs for {name}.")
+        # case where user provides pods
+        if pod_names:
+            for name in pod_names:
+                if name not in pod_dict:
+                    print(f"{name} is not a valid pod. Logs cannot be retrieved.")
+                    continue
+                print(f"\nLogs for {name}:\n{'-' * 40}")
+                try:
+                    logs = oc.selector(f"pod/{name}").logs()
+                    # ⋆ ˚｡⋆୨୧˚ stringify and pretty print for readibility ⋆ ˚｡⋆୨୧˚ lol
+                    print(str(logs).replace("\\n", "\n"))
+                except OpenShiftPythonException:
+                    print(f"Failed to retrieve logs for {name}.")
+        else:
+            # case where user provides no args, print logs for all pods
+            for name, pod in pod_dict.items():
+                print(f"\nLogs for {name}:\n{'-' * 40}")
+                try:
+                    # MCHECK: EXTRAPOLATE LOGIC INTO FUNCTION
+
+                    logs = oc.selector(f"pod/{name}").logs()
+                    print(str(logs).replace("\\n", "\n"))
+                except OpenShiftPythonException:
+                    print(f"Failed to retrieve logs for {name}.")
 
     except OpenShiftPythonException as e:
         print("Error occurred while retrieving logs:")
@@ -162,34 +161,33 @@ def bl(pod_names: list[str] | None = None) -> int:
 # BP WORKING
 def bp(job_names: list[str] | None = None) -> int:
     try:
-        with oc.tracking() as t:
-            jobs = oc.selector("jobs").objects()
-            if not jobs:
-                print("No jobs found.")
-                return 0
+        jobs = oc.selector("jobs").objects()
+        if not jobs:
+            print("No jobs found.")
+            return 0
 
-            job_dict = {job.model.metadata.name: job for job in jobs}
+        job_dict = {job.model.metadata.name: job for job in jobs}
 
-            def print_pods_for(job_name: str):
-                # pods with label job-name=<job_name>
-                pods = oc.selector("pods", labels={"job-name": job_name}).objects()
-                if not pods:
-                    print(f"No pods found for job {job_name}.")
-                    return
-                print(f"\nPods for {job_name}:\n{'-' * 40}")
-                for pod in pods:
-                    print(f"- {pod.model.metadata.name}")
+        def print_pods_for(job_name: str):
+            # pods with label job-name=<job_name>
+            pods = oc.selector("pods", labels={"job-name": job_name}).objects()
+            if not pods:
+                print(f"No pods found for job {job_name}.")
+                return
+            print(f"\nPods for {job_name}:\n{'-' * 40}")
+            for pod in pods:
+                print(f"- {pod.model.metadata.name}")
 
-            if job_names:
-                for name in job_names:
-                    if name not in job_dict:
-                        print(f"{name} does not exist; cannot fetch pod name.")
-                        continue
-                    print_pods_for(name)
-            else:
-                print("Displaying pods for all current batch jobs:\n")
-                for name in job_dict.keys():
-                    print_pods_for(name)
+        if job_names:
+            for name in job_names:
+                if name not in job_dict:
+                    print(f"{name} does not exist; cannot fetch pod name.")
+                    continue
+                print_pods_for(name)
+        else:
+            print("Displaying pods for all current batch jobs:\n")
+            for name in job_dict.keys():
+                print_pods_for(name)
 
     except OpenShiftPythonException as e:
         print("Error occurred while retrieving pods:")
@@ -201,47 +199,47 @@ def bp(job_names: list[str] | None = None) -> int:
 
 def bq(args) -> int:
     try:
-            clusterqueues = oc.selector("clusterqueue").objects()
-            if not clusterqueues:
-                print("No ClusterQueues found.")
-                return 0
+        clusterqueues = oc.selector("clusterqueue").objects()
+        if not clusterqueues:
+            print("No ClusterQueues found.")
+            return 0
 
-            for cq in clusterqueues:
-                cq_dict = cq.as_dict() if hasattr(cq, "as_dict") else cq.model.to_dict()
-                meta = cq_dict.get("metadata", {})
-                spec = cq_dict.get("spec", {})
-                status = cq_dict.get("status", {})
+        for cq in clusterqueues:
+            cq_dict = cq.as_dict() if hasattr(cq, "as_dict") else cq.model.to_dict()
+            meta = cq_dict.get("metadata", {})
+            spec = cq_dict.get("spec", {})
+            status = cq_dict.get("status", {})
 
-                # calculate total GPUs across resourceGroups/flavors
-                total_gpu = 0
-                for rg in spec.get("resourceGroups", []) or []:
-                    for flav in rg.get("flavors", []) or []:
-                        for res in flav.get("resources", []) or []:
-                            if res.get("name") == "nvidia.com/gpu":
-                                try:
-                                    total_gpu += int(res.get("nominalQuota", 0))
-                                except (TypeError, ValueError):
-                                    continue
+            # calculate total GPUs across resourceGroups/flavors
+            total_gpu = 0
+            for rg in spec.get("resourceGroups", []) or []:
+                for flav in rg.get("flavors", []) or []:
+                    for res in flav.get("resources", []) or []:
+                        if res.get("name") == "nvidia.com/gpu":
+                            try:
+                                total_gpu += int(res.get("nominalQuota", 0))
+                            except (TypeError, ValueError):
+                                continue
 
-                admitted = status.get("admittedWorkloads", 0) or 0
-                pending = status.get("pendingWorkloads", 0) or 0
-                reserving = status.get("reservingWorkloads", 0) or 0
-                queueing = spec.get("queueingStrategy", "") or ""
+            admitted = status.get("admittedWorkloads", 0) or 0
+            pending = status.get("pendingWorkloads", 0) or 0
+            reserving = status.get("reservingWorkloads", 0) or 0
+            queueing = spec.get("queueingStrategy", "") or ""
 
-                print(
-                    f"{meta.get('name', '')}\t"
-                    f"admitted: {admitted} "
-                    f"pending: {pending} "
-                    f"reserved: {reserving} "
-                    f"GPUs: {total_gpu} "
-                    f"{queueing}"
-                )
+            print(
+                f"{meta.get('name', '')}\t"
+                f"admitted: {admitted} "
+                f"pending: {pending} "
+                f"reserved: {reserving} "
+                f"GPUs: {total_gpu} "
+                f"{queueing}"
+            )
 
-    except OpenShiftPythonException as e:
-        print("Error occurred while retrieving ClusterQueues:")
-        print(e)
-        traceback.print_exc()
-        return 1
+except OpenShiftPythonException as e:
+    print("Error occurred while retrieving ClusterQueues:")
+    print(e)
+    traceback.print_exc()
+    return 1
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tool", description="OpenShift CLI helper")
@@ -361,6 +359,7 @@ def main(argv=None) -> int:
     
     elif args.cmd == "bp":
         return bp(args.job_names)
+
     elif args.cmd == "bq":
         return bq(args)
     
