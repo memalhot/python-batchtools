@@ -48,7 +48,7 @@ def bj(watch: bool) -> int:
     """
     try:
         if watch:
-            # print("Getting jobs with -w flag set")
+            print("Getting jobs with -w flag set")
             # with oc.watch("jobs") as stream:
             #     for event in stream:
             #         job = event['object']
@@ -225,7 +225,7 @@ def bq(args) -> int:
             pending = status.get("pendingWorkloads", 0)
             reserving = status.get("reservingWorkloads", 0)
             queueing = spec.get("queueingStrategy", "")
-            
+
             print(
                 f"{meta.get('name', '')}\t"
                 f"admitted: {admitted} "
