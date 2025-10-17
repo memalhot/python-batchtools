@@ -427,7 +427,7 @@ def build_parser() -> argparse.ArgumentParser:
             """
         )
 
-            p_bps = sub.add_parser("bps", help="""\
+    p_bps = sub.add_parser("bps", help="""\
                 bps
                     Usage:
                         bps [-h | --help] [-v | --verbose] [node-name [node-name ...]]
@@ -435,8 +435,8 @@ def build_parser() -> argparse.ArgumentParser:
                     List active GPU pods per node. By default prints only BUSY nodes.
                     With -v/--verbose, prints FREE for nodes seen with Running pods but 0 GPUs.
             """)
-            p_bps.add_argument("-v", "--verbose", action="store_true", help="Show FREE nodes too")
-            p_bps.add_argument("nodes", nargs="*", help="Optional node name(s) to filter")
+        p_bps.add_argument("-v", "--verbose", action="store_true", help="Show FREE nodes too")
+        p_bps.add_argument("nodes", nargs="*", help="Optional node name(s) to filter")
 
     return parser
 
