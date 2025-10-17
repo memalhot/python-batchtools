@@ -42,7 +42,6 @@ def _summarize_gpu_pods(pods, verbose: bool) -> list[str]:
                     totals[node] += g
                     busy_pods[node].add(pod_id)
         except Exception:
-            # Skip malformed pod entries safely
             continue
 
     lines = []
@@ -248,42 +247,43 @@ def bq(args) -> int:
 
 def bps(nodes: list[str] | None = None, verbose: bool = False) -> int:
     try:
-        if nodes:
-            for node in nodes:
-                # Build the full selector string (flags included)
-                selector = (
-                    f"pods --all-namespaces "
-                    f"--field-selector=status.phase=Running,spec.nodeName={node}"
-                )
-                try:
-                    with oc.timeout(60):
-                        pods = oc.selector(selector).objects()
-                except Exception:
-                    # Fallback: get all Running pods and filter by node in Python
-                    with oc.timeout(120):
-                        all_running = oc.selector(
-                            "pods --all-namespaces --field-selector=status.phase=Running"
-                        ).objects()
-                    pods = [p for p in all_running if getattr(p.model.spec, "nodeName", None) == node]
+        with oc.timeout(120):
+            # Fetch all pods across all namespaces; filter in Python
+            all_pods = oc.selector("pods", all_namespaces=True).objects()
 
-                lines = _summarize_gpu_pods(pods, verbose)
+        if nodes:
+            # Summarize for each requested node separately
+            node_set = set(nodes)
+            # Filter to Running pods on requested nodes
+            pods_for_nodes = [
+                p for p in all_pods
+                if getattr(p.model.status, "phase", None) == "Running"
+                and (getattr(p.model.spec, "nodeName", None) or "") in node_set
+            ]
+            # Group by node
+            pods_by_node = defaultdict(list)
+            for p in pods_for_nodes:
+                n = getattr(p.model.spec, "nodeName", None) or ""
+                pods_by_node[n].append(p)
+
+            for node in nodes:
+                lines = _summarize_gpu_pods(pods_by_node.get(node, []), verbose)
                 if not lines and verbose:
                     print(f"{node}: FREE")
                 else:
                     for ln in lines:
                         print(ln)
         else:
-            with oc.timeout(120):
-                pods = oc.selector(
-                    "pods --all-namespaces --field-selector=status.phase=Running"
-                ).objects()
-            for ln in _summarize_gpu_pods(pods, verbose):
+            # One global summary over all Running pods
+            running = [p for p in all_pods if getattr(p.model.status, "phase", None) == "Running"]
+            for ln in _summarize_gpu_pods(running, verbose):
                 print(ln)
-        return 0
-    except OpenShiftPythonException as e:
-        print("Error interacting with OpenShift:", e)
-        return 1
 
+        return 0
+
+    except OpenShiftPythonException as e:
+        print("Error interacting with OpenShift:", e, file=sys.stderr)
+        return 1
 
 def br():
     DEFAULT_QUEUES = {
