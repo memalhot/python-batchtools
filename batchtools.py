@@ -249,40 +249,33 @@ def bq(args) -> int:
 def bps(nodes: list[str] | None = None, verbose: bool = False) -> int:
     try:
         if nodes:
-            # Query node-by-node for speed/compat with large clusters
             for node in nodes:
+                # Build the full selector string (flags included)
+                selector = (
+                    f"pods --all-namespaces "
+                    f"--field-selector=status.phase=Running,spec.nodeName={node}"
+                )
                 try:
                     with oc.timeout(60):
-                        # Filter by node and Running phase via field selector where supported
-                        pods = oc.selector(
-                            "pods",
-                            all_namespaces=True,
-                            field_selector=f"status.phase=Running,spec.nodeName={node}"
-                        ).objects()
+                        pods = oc.selector(selector).objects()
                 except Exception:
-                    # Fallback: get all Running pods and filter in Python
+                    # Fallback: get all Running pods and filter by node in Python
                     with oc.timeout(120):
                         all_running = oc.selector(
-                            "pods",
-                            all_namespaces=True,
-                            field_selector="status.phase=Running"
+                            "pods --all-namespaces --field-selector=status.phase=Running"
                         ).objects()
                     pods = [p for p in all_running if getattr(p.model.spec, "nodeName", None) == node]
 
                 lines = _summarize_gpu_pods(pods, verbose)
                 if not lines and verbose:
-                    # If we queried this node explicitly and saw nothing BUSY, still reflect FREE
                     print(f"{node}: FREE")
                 else:
                     for ln in lines:
                         print(ln)
         else:
-            # Single shot over all namespaces; summarize globally
             with oc.timeout(120):
                 pods = oc.selector(
-                    "pods",
-                    all_namespaces=True,
-                    field_selector="status.phase=Running"
+                    "pods --all-namespaces --field-selector=status.phase=Running"
                 ).objects()
             for ln in _summarize_gpu_pods(pods, verbose):
                 print(ln)
@@ -290,7 +283,6 @@ def bps(nodes: list[str] | None = None, verbose: bool = False) -> int:
     except OpenShiftPythonException as e:
         print("Error interacting with OpenShift:", e)
         return 1
-
 
 
 def br():
