@@ -3,9 +3,10 @@ from openshift_client import Context, OpenShiftPythonException
 import traceback
 import argparse
 import sys
+from collections import defaultdict
+
 
 # helpers!
-
 def print_pods_for(job_name: str):
     # pods with label job-name=<job_name>
     pods = oc.selector("pods", labels={"job-name": job_name}).objects()
@@ -16,6 +17,44 @@ def print_pods_for(job_name: str):
     for pod in pods:
         print(f"- {pod.model.metadata.name}")
 
+def _summarize_gpu_pods(pods, verbose: bool) -> list[str]:
+    totals = defaultdict(int)
+    busy_pods = defaultdict(set)
+    seen_nodes = set()
+
+    for pod in pods or []:
+        try:
+            if pod.model.status.phase != "Running":
+                continue
+            node = (pod.model.spec.nodeName or "").strip()
+            if not node:
+                continue
+            seen_nodes.add(node)
+
+            ns = (pod.model.metadata.namespace or "").strip()
+            name = (pod.model.metadata.name or "").strip()
+            pod_id = f"{ns}/{name}" if ns and name else name or ns
+
+            for ctr in (pod.model.spec.containers or []):
+                reqs = getattr(ctr.resources, "requests", {}) or {}
+                g = int(reqs.get("nvidia.com/gpu", 0) or 0)
+                if g > 0:
+                    totals[node] += g
+                    busy_pods[node].add(pod_id)
+        except Exception:
+            # Skip malformed pod entries safely
+            continue
+
+    lines = []
+    nodes = sorted(seen_nodes or totals.keys())
+    for node in nodes:
+        total = totals.get(node, 0)
+        if total > 0:
+            pods_str = " ".join(sorted(busy_pods.get(node, [])))
+            lines.append(f"{node}: BUSY {total} {pods_str}".rstrip())
+        elif verbose:
+            lines.append(f"{node}: FREE")
+    return lines
 
 # MCHECK: NEED TO FIX WATCH BUG
 def bj(watch: bool) -> int:
@@ -207,7 +246,62 @@ def bq(args) -> int:
         traceback.print_exc()
         return 1
 
-def bps()
+def bps(nodes: list[str] | None = None, verbose: bool = False) -> int:
+    try:
+        if nodes:
+            # Query node-by-node for speed/compat with large clusters
+            for node in nodes:
+                try:
+                    with oc.timeout(60):
+                        # Filter by node and Running phase via field selector where supported
+                        pods = oc.selector(
+                            "pods",
+                            all_namespaces=True,
+                            field_selector=f"status.phase=Running,spec.nodeName={node}"
+                        ).objects()
+                except Exception:
+                    # Fallback: get all Running pods and filter in Python
+                    with oc.timeout(120):
+                        all_running = oc.selector(
+                            "pods",
+                            all_namespaces=True,
+                            field_selector="status.phase=Running"
+                        ).objects()
+                    pods = [p for p in all_running if getattr(p.model.spec, "nodeName", None) == node]
+
+                lines = _summarize_gpu_pods(pods, verbose)
+                if not lines and verbose:
+                    # If we queried this node explicitly and saw nothing BUSY, still reflect FREE
+                    print(f"{node}: FREE")
+                else:
+                    for ln in lines:
+                        print(ln)
+        else:
+            # Single shot over all namespaces; summarize globally
+            with oc.timeout(120):
+                pods = oc.selector(
+                    "pods",
+                    all_namespaces=True,
+                    field_selector="status.phase=Running"
+                ).objects()
+            for ln in _summarize_gpu_pods(pods, verbose):
+                print(ln)
+        return 0
+    except OpenShiftPythonException as e:
+        print("Error interacting with OpenShift:", e)
+        return 1
+
+
+
+def br():
+    DEFAULT_QUEUES = {
+    "v100": "v100-localqueue",
+    "a100": "a100-localqueue",
+    "h100": "h100-localqueue",
+    "none": "dummy-localqueue",
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tool", description="OpenShift CLI helper")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -300,6 +394,49 @@ def build_parser() -> argparse.ArgumentParser:
             See the repository README.md for more documentation and examples.
     """)
 
+    p_br = sub.add_parser("br", help="""\
+           brun [-h] <command line>
+                brun creates and submits a batch job to a GPU batch queue.  The arguments are treated as a command line arg
+                that will execute as the batch job.  The behaviour of the job submission can be controlled via several
+                environment variables. By default the files and subdirectories of your current working directory form a context for 
+                the job.  The context is copied to the container in which the batch job will execute.  Thus the commandline
+                can reference files in the directory.  Additinoally, files created in the working directory of commandline
+                in the container will be copied back so that you can inspect output of your job (eg. profiles, logs and outputs).
+                These files and directories are placed in a directory make in job specific subdirectory of a directory called jobs.
+                Eg.
+
+                1. The simple usage run a binary that exsits in the current directory on the default GPU type
+                $ br ./hello
+                Hello from CPU
+                Hello from GPU
+                Hello from GPU
+                Hello from GPU
+                Hello from GPU
+                Hello from GPU
+                Hello from GPU
+                Hello from GPU
+                Hello from GPU
+                Hello from GPU
+                Hello from GPU
+                RUNDIR: jobs/job-v100-9215
+
+            Note by default brun waits for the job to complete and displays after the standard output and error of the command line.
+            After that it display the directory where the outputs for the job where copied.
+
+            See repository README.md for more documentation and examples.
+            """
+        )
+
+            p_bps = sub.add_parser("bps", help="""\
+                bps
+                    Usage:
+                        bps [-h | --help] [-v | --verbose] [node-name [node-name ...]]
+
+                    List active GPU pods per node. By default prints only BUSY nodes.
+                    With -v/--verbose, prints FREE for nodes seen with Running pods but 0 GPUs.
+            """)
+            p_bps.add_argument("-v", "--verbose", action="store_true", help="Show FREE nodes too")
+            p_bps.add_argument("nodes", nargs="*", help="Optional node name(s) to filter")
 
     return parser
 
@@ -318,14 +455,20 @@ def main(argv=None) -> int:
 
     elif args.cmd == "bl":
         return bl(args.pod_names)
-    
+
     elif args.cmd == "bp":
         return bp(args.job_names)
 
     elif args.cmd == "bq":
         return bq(args)
     
-    # Should never reach here because subparsers are required
+    elif args.cmd == "br":
+        return br(args)
+    
+    elif args.cmd == "bps":
+        return bps(getattr(args, "nodes", []), getattr(args, "verbose", False))
+
+    # should never return here
     return 2
 
 if __name__ == "__main__":
