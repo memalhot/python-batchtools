@@ -31,6 +31,10 @@ def pretty_print(pod_name:str) -> Optional[str]:
         print("Error occurred while retrieving logs:")
         print(e)
 
-def oc_delete(pod_name:str) -> 
-    print(f"Deleting {pod_name}")
-    oc.invoke("delete", ["job", pod_name])
+def oc_delete(job_name:str) -> 
+    try:
+        print(f"Deleting {job_name}")
+        oc.invoke("delete", ["job", job_name])
+    except OpenShiftPythonException as e:
+        print("Error occurred while retrieving logs:")
+        print(e)

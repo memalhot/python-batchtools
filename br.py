@@ -270,11 +270,6 @@ def br(args) -> int:
         return 1
 
     if delete:
-        print(f"Deleting job {job_name} ...")
-        try:
-            oc.invoke("delete", ["job", job_name])
-        except OpenShiftPythonException as e:
-            print(f"Failed to delete job {job_name}: {e}")
-            return 1
+        oc_delete(job_name)
 
     return 0
