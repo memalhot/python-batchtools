@@ -32,7 +32,7 @@ def log_job_output(job_name: str, *, wait: int, timeout: int | None) -> None:
                 return
             time.sleep(5)
 
-    print(pretty_print(pod_name, logs))
+    print(pretty_print(pod_name))
 
 def prepare_context_and_getlist(context: int, context_dir: str, jobs_dir: str, output_dir: str, getlist_path: str) -> None:    
     if not context:
