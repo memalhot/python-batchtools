@@ -14,10 +14,23 @@ from pathlib import Path
 
 # helpers!
 
-def log_job_output(job_name: str, *, wait_for_completion: int, timeout: int | None) -> None:
+def log_job_output(job_name: str, *, wait: int, timeout: int | None) -> None:
     """
     Wait until the job's pod completes (Succeeded/Failed), then print its logs once.
     """
+    if wait:
+        time.sleep(3)
+        pod = oc.selector("pod", labels={"job-name": job_name}).objects()
+        phase = pod.model.status.phase
+        phase = get_pod_status(pod_name, namespace)
+        if phase in ("Succeeded", "Failed"):
+            print(f"Pod {phase}")
+            logs = oc.selector(f"pod/{name}").logs()
+            print(logs)
+    else:
+        print(f"idk what do here lol")
+
+
 
 def prepare_context_and_getlist(context: int, context_dir: str, jobs_dir: str, output_dir: str, getlist_path: str) -> None:    
     if not context:
@@ -43,15 +56,6 @@ def prepare_context_and_getlist(context: int, context_dir: str, jobs_dir: str, o
     except Exception as e:
         print(f"ERROR: Failed to make output dir: {e}")
         sys.exit(-1)
-
-
-    # jdir_rel: str | None = None
-    # try:
-    #     # Is jobs_dir directly under context_dir?
-    #     if jobs.parent.resolve() == ctx:
-    #         jdir_rel = f"./{jobs.name}"
-    # except Exception:
-    #     jdir_rel = None
 
 
 
