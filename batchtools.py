@@ -14,25 +14,41 @@ from pathlib import Path
 
 # helpers!
 
+def get_pod_status(pod_name: str, namespace: str | None = None) -> str:
+    """
+    Return the current status.phase of a pod (e.g. Pending, Running, Succeeded, Failed).
+    """
+    pod = oc.selector(f"pod/{pod_name}").object()
+    return pod.model.status.phase or "Unknown"
+
 def log_job_output(job_name: str, *, wait: int, timeout: int | None) -> None:
     """
     Wait until the job's pod completes (Succeeded/Failed), then print its logs once.
     """
-    if wait:
-        time.sleep(3)
-        pods = oc.selector("pod", labels={"job-name": job_name}).objects()
-        pod = pods[0]
+    pods = oc.selector("pod", labels={"job-name": job_name}).objects()
+    if not pods:
+        print(f"No pods found for job {job_name}")
+        return
 
-        pod_name = pod.model.metadata.name
-        phase = pod.model.status.phase
-        
-        phase = get_pod_status(pod_name, namespace)
-        if phase in ("Succeeded", "Failed"):
-            print(f"Pod {phase}")
-            logs = oc.selector(f"pod/{pod_name}").logs()
-            print(logs)
-    else:
-        print(f"idk what do here lol")
+    pod = pods[0]
+    pod_name = pod.model.metadata.name
+
+    if wait:
+        start = time.monotonic()
+        while True:
+            phase = get_pod_status(pod_name)
+            if phase in ("Succeeded", "Failed"):
+                print(f"Pod {pod_name} finished with phase={phase}")
+                break
+            if timeout and (time.monotonic() - start) > timeout:
+                print(f"Timeout waiting for pod {pod_name} to complete")
+                return
+            time.sleep(5)
+
+    # fetch logs once at end
+    logs = oc.selector(f"pod/{pod_name}").logs()
+    print(logs)
+
 
 
 
