@@ -755,7 +755,7 @@ def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    elif args.cmd == "bj":
+    if args.cmd == "bj":
         return bj(args.watch)
 
     elif args.cmd == "bd":
