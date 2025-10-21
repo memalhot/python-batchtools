@@ -1,4 +1,5 @@
 from imports import *
+from helpers import oc_delete
 
 # MCHECK: NEEDS PERMISSIONS TO BE TESTED
 def bd(job_names: list[str] | None = None) -> int:
@@ -10,8 +11,7 @@ def bd(job_names: list[str] | None = None) -> int:
 
         # only get gpu jobs (ASK ABOUT THIS)
         gpu_jobs = [
-            job for job in jobs
-            if job.model.metadata.name.startswith("job-job")
+            job for job in jobs if job.model.metadata.name.startswith("job-job") 
             or job.model.metadata.name.startswith("workloads/job-job")
         ]
 
@@ -26,15 +26,13 @@ def bd(job_names: list[str] | None = None) -> int:
                 if name not in found:
                     print(f"{name} is not a GPU job and cannot be deleted.")
                     continue
-                print(f"Deleting {name} ...")
-                oc.invoke("delete", ["job", name])
+                oc_delete(name)
         else:
             # case where user does not provide jobs to delete, delete all
             print("No job names provided -> deleting all GPU workloads:\n")
             for job in gpu_jobs:
                 name = job.model.metadata.name
-                print(f"Deleting {name} ...")
-                oc.invoke("delete", ["job", name])
+                oc_delete(name)
 
     except OpenShiftPythonException as e:
         print("Error occurred while deleting jobs:")

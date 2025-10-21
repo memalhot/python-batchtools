@@ -21,7 +21,7 @@ def get_cmd(command:str) -> str:
         sys.exit(-1)
 
 
-def pretty_print(pod_name:str) -> str:
+def pretty_print(pod_name:str) -> Optional[str]:
     try:
         logs = oc.selector(f"pod/{pod_name}").logs()
         # ⋆ ˚｡⋆୨୧˚ stringify and pretty print for readibility ⋆ ˚｡⋆୨୧˚
@@ -30,4 +30,7 @@ def pretty_print(pod_name:str) -> str:
     except OpenShiftPythonException as e:
         print("Error occurred while retrieving logs:")
         print(e)
-        return 1
+
+def oc_delete(pod_name:str) -> 
+    print(f"Deleting {pod_name}")
+    oc.invoke("delete", ["job", pod_name])
