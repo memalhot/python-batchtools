@@ -10,6 +10,7 @@ import os
 import time
 import sys
 from pathlib import Path
+from bj import bj
 
 
 # helpers!
@@ -265,24 +266,24 @@ def _summarize_gpu_pods(pods, verbose: bool) -> list[str]:
             lines.append(f"{node}: FREE")
     return lines
 
-# MCHECK: NEED TO FIX WATCH BUG
-def bj(watch: bool) -> int:
-    """
-    Display the status of gpu jobs using 'oc get jobs'.
-    """
-    try:
-        jobs = oc.selector("jobs").objects()
-        if not jobs:
-            print("No jobs found.")
-            return
-        print(f"Found {len(jobs)} jobs:\n")
-        for job in jobs:
-            print(f"- {job.model.metadata.name}")
-    except OpenShiftPythonException as e:
-        print("Error occurred while retrieving jobs:")
-        print(e)
+# # MCHECK: NEED TO FIX WATCH BUG
+# def bj(watch: bool) -> int:
+#     """
+#     Display the status of gpu jobs using 'oc get jobs'.
+#     """
+#     try:
+#         jobs = oc.selector("jobs").objects()
+#         if not jobs:
+#             print("No jobs found.")
+#             return
+#         print(f"Found {len(jobs)} jobs:\n")
+#         for job in jobs:
+#             print(f"- {job.model.metadata.name}")
+#     except OpenShiftPythonException as e:
+#         print("Error occurred while retrieving jobs:")
+#         print(e)
 
-    return 0
+#     return 0
 
 
 # MCHECK: NEEDS PERMISSIONS TO BE TESTED
