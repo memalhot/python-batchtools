@@ -46,8 +46,9 @@ def log_job_output(job_name: str, *, wait: int, timeout: int | None) -> None:
             time.sleep(5)
 
     # fetch logs once at end
+    # MCHECK PRETTY PRINT LOGS EXTRAPOLATE INTO A FUNCTION
     logs = oc.selector(f"pod/{pod_name}").logs()
-    print(logs)
+    print(str(logs).replace("\\n", "\n"))
 
 
 
