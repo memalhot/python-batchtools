@@ -521,7 +521,7 @@ def br(args) -> int:
         if wait:
             log_job_output(
                 job_name=job_name,
-                wait_for_completion=wait,
+                wait=wait,
                 timeout=timeout
             )
 
