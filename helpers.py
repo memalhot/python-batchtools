@@ -31,7 +31,7 @@ def pretty_print(pod_name:str) -> Optional[str]:
         print("Error occurred while retrieving logs:")
         print(e)
 
-def oc_delete(job_name:str) -> None
+def oc_delete(job_name:str) -> None:
     try:
         print(f"Deleting {job_name}")
         oc.invoke("delete", ["job", job_name])
