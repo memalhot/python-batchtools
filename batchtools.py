@@ -14,7 +14,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_bj = sub.add_parser("bj", help="""\
             bj
                 Usage:
-                    bj [-h | --help] [-w | --watch]
+                    bj [-h | --help]
 
                     Display the status of your jobs. This includes all jobs that have not been deleted.
 
@@ -29,9 +29,6 @@ def build_parser() -> argparse.ArgumentParser:
                     See also:
                     'brun -h' and the repository README.md for more documentation and examples.
         """)
-
-    p_bj.add_argument("-w", "--watch", action="store_true", help="")
-    
 
     # B LOGS
     p_bl = sub.add_parser("bl", help=""""\
