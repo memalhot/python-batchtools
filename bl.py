@@ -1,4 +1,5 @@
 from imports import *
+from helpers import pretty_print
 
 def bl(pod_names: list[str] | None = None) -> int:
     try:
@@ -18,23 +19,13 @@ def bl(pod_names: list[str] | None = None) -> int:
                     print(f"{name} is not a valid pod. Logs cannot be retrieved.")
                     continue
                 print(f"\nLogs for {name}:\n{'-' * 40}")
-                try:
-                    logs = oc.selector(f"pod/{name}").logs()
-
-                    # ⋆ ˚｡⋆୨୧˚ stringify and pretty print for readibility ⋆ ˚｡⋆୨୧˚
-                    print(str(logs).replace("\\n", "\n"))
-                except OpenShiftPythonException:
-                    print(f"Failed to retrieve logs for {name}.")
+                print(pretty_print(name))
+ 
         else:
             # case where user provides no args, print logs for all pods
             for name, pod in pod_dict.items():
                 print(f"\nLogs for {name}:\n{'-' * 40}")
-                try:
-                    # MCHECK: EXTRAPOLATE LOGIC INTO FUNCTION
-                    logs = oc.selector(f"pod/{name}").logs()
-                    print(str(logs).replace("\\n", "\n"))
-                except OpenShiftPythonException:
-                    print(f"Failed to retrieve logs for {name}.")
+                pretty_print(name)
 
     except OpenShiftPythonException as e:
         print("Error occurred while retrieving logs:")
