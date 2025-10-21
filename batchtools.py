@@ -45,30 +45,14 @@ def prepare_context_and_getlist(context: int, context_dir: str, jobs_dir: str, o
         sys.exit(-1)
 
 
-    jdir_rel: str | None = None
-    try:
-        # Is jobs_dir directly under context_dir?
-        if jobs.parent.resolve() == ctx:
-            jdir_rel = f"./{jobs.name}"
-    except Exception:
-        jdir_rel = None
+    # jdir_rel: str | None = None
+    # try:
+    #     # Is jobs_dir directly under context_dir?
+    #     if jobs.parent.resolve() == ctx:
+    #         jdir_rel = f"./{jobs.name}"
+    # except Exception:
+    #     jdir_rel = None
 
-    entries: list[str] = []
-    for name in sorted(p.name for p in ctx.iterdir()):
-        # immediate children only (like -mindepth 1 -maxdepth 1)
-        # "find" would include both files and directories; do the same here
-        rel = f"./{name}"
-        if jdir_rel and rel == jdir_rel:
-            continue
-        entries.append(rel)
-
-    #write to getlist
-    try:
-        gl.parent.mkdir(parents=True, exist_ok=True)
-        gl.write_text("\n".join(entries) + ("\n" if entries else ""))
-    except Exception as e:
-        print(f"ERROR: Failed to write getlist at {gl}: {e}")
-        sys.exit(-1)
 
 
 def get_cmd(command:str) -> str:
@@ -111,7 +95,7 @@ def build_job_body(
 ) -> dict[str, Any]:
 
     """
-    Build a batch/v1 Job as a dict suitable for dynamic client creation.
+    Build a batch/v1 Job as a dict to pass to oc.create()
     """
     if gpu == "none":
         resources = {
@@ -238,21 +222,13 @@ def bj(watch: bool) -> int:
     Display the status of gpu jobs using 'oc get jobs'.
     """
     try:
-        if watch:
-            print("Getting jobs with -w flag set")
-            # with oc.watch("jobs") as stream:
-            #     for event in stream:
-            #         job = event['object']
-            #         print(f"[{event['type']}] {job.model.metadata.name}")
-        else:
-            jobs = oc.selector("jobs").objects()
-            if not jobs:
-                print("No jobs found.")
-                return
-            print(f"Found {len(jobs)} jobs:\n")
-            for job in jobs:
-                print(f"- {job.model.metadata.name}")
-
+        jobs = oc.selector("jobs").objects()
+        if not jobs:
+            print("No jobs found.")
+            return
+        print(f"Found {len(jobs)} jobs:\n")
+        for job in jobs:
+            print(f"- {job.model.metadata.name}")
     except OpenShiftPythonException as e:
         print("Error occurred while retrieving jobs:")
         print(e)
@@ -326,7 +302,7 @@ def bl(pod_names: list[str] | None = None) -> int:
                 try:
                     logs = oc.selector(f"pod/{name}").logs()
 
-                    # ⋆ ˚｡⋆୨୧˚ stringify and pretty print for readibility ⋆ ˚｡⋆୨୧˚ lol
+                    # ⋆ ˚｡⋆୨୧˚ stringify and pretty print for readibility ⋆ ˚｡⋆୨୧˚
                     print(str(logs).replace("\\n", "\n"))
                 except OpenShiftPythonException:
                     print(f"Failed to retrieve logs for {name}.")
@@ -511,7 +487,7 @@ def br(args) -> int:
         context_dir=context_directory,
         jobs_dir=jobs_directory,
         output_dir=output_directory,
-        getlist_path=getlist,
+        getlist_path=getlist
     )
 
     try:
@@ -779,9 +755,6 @@ def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    if args.cmd == "login":
-        return cli_login(args.kubeconfig, args.server, args.token)
-
     elif args.cmd == "bj":
         return bj(args.watch)
 
@@ -801,7 +774,7 @@ def main(argv=None) -> int:
         return br(args)
     
     elif args.cmd == "bps":
-        return bps(getattr(args, "nodes", []), getattr(args, "verbose", False))
+        return bps(args)
 
     # should never return here
     return 2
