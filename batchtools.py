@@ -20,12 +20,16 @@ def log_job_output(job_name: str, *, wait: int, timeout: int | None) -> None:
     """
     if wait:
         time.sleep(3)
-        pod = oc.selector("pod", labels={"job-name": job_name}).objects()
+        pods = oc.selector("pod", labels={"job-name": job_name}).objects()
+        pod = pods[0]
+
+        pod_name = pod.model.metadata.name
         phase = pod.model.status.phase
+        
         phase = get_pod_status(pod_name, namespace)
         if phase in ("Succeeded", "Failed"):
             print(f"Pod {phase}")
-            logs = oc.selector(f"pod/{name}").logs()
+            logs = oc.selector(f"pod/{pod_name}").logs()
             print(logs)
     else:
         print(f"idk what do here lol")
