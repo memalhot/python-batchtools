@@ -1,4 +1,5 @@
 from imports import *
+from helpers import is_logged_in
 from bj import bj
 from bl import bl
 from bd import bd
@@ -216,6 +217,10 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 def main(argv=None) -> int:
+
+    if not is_logged_in():
+        sys.exit(1)
+    
     parser = build_parser()
     args = parser.parse_args(argv)
 
