@@ -1,6 +1,8 @@
 from imports import *
 from bj import bj
-
+from bl import bl
+from bd import bd
+from helpers import *
 
 # helpers!
 
@@ -94,25 +96,6 @@ def prepare_context_and_getlist(context: int, context_dir: str, jobs_dir: str, o
         sys.exit(-1)
 
 
-def get_cmd(command:str) -> str:
-    """
-    Helper function to print the hostname using subprocess.
-    """
-    try:
-        result = subprocess.run(
-            [command],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        output = result.stdout.strip()
-        return output
-
-    except subprocess.CalledProcessError as e:
-        print(f"Error: command failed with exit code {e.returncode}")
-        if e.stderr:
-            print(f"stderr: {e.stderr.strip()}")
-        sys.exit(-1)
 
 def build_job_body(
     job_name: str,
@@ -208,14 +191,7 @@ def build_job_body(
     }
     return body
 
-def print_pods_for(job_name: str):
-    pods = oc.selector("pods", labels={"job-name": job_name}).objects()
-    if not pods:
-        print(f"No pods found for job {job_name}.")
-        return
-    print(f"\nPods for {job_name}:\n{'-' * 40}")
-    for pod in pods:
-        print(f"- {pod.model.metadata.name}")
+
 
 def _summarize_gpu_pods(pods, verbose: bool) -> list[str]:
     totals = defaultdict(int)
@@ -254,168 +230,6 @@ def _summarize_gpu_pods(pods, verbose: bool) -> list[str]:
         elif verbose:
             lines.append(f"{node}: FREE")
     return lines
-
-
-
-
-# WORKING . HELL YEAH
-def bl(pod_names: list[str] | None = None) -> int:
-    try:
-        pods = oc.selector("pods").objects()
-
-        if not pods:
-            print("No pods to retrieve logs from.")
-            return 0
-
-        # dict of pod name and pod object
-        pod_dict = {pod.model.metadata.name: pod for pod in pods}
-
-        # case where user provides pods
-        if pod_names:
-            for name in pod_names:
-                if name not in pod_dict:
-                    print(f"{name} is not a valid pod. Logs cannot be retrieved.")
-                    continue
-                print(f"\nLogs for {name}:\n{'-' * 40}")
-                try:
-                    logs = oc.selector(f"pod/{name}").logs()
-
-                    # ⋆ ˚｡⋆୨୧˚ stringify and pretty print for readibility ⋆ ˚｡⋆୨୧˚
-                    print(str(logs).replace("\\n", "\n"))
-                except OpenShiftPythonException:
-                    print(f"Failed to retrieve logs for {name}.")
-        else:
-            # case where user provides no args, print logs for all pods
-            for name, pod in pod_dict.items():
-                print(f"\nLogs for {name}:\n{'-' * 40}")
-                try:
-                    # MCHECK: EXTRAPOLATE LOGIC INTO FUNCTION
-                    logs = oc.selector(f"pod/{name}").logs()
-                    print(str(logs).replace("\\n", "\n"))
-                except OpenShiftPythonException:
-                    print(f"Failed to retrieve logs for {name}.")
-
-    except OpenShiftPythonException as e:
-        print("Error occurred while retrieving logs:")
-        print(e)
-        traceback.print_exc()
-        return 1
-
-    return 0
-
-
-def bp(job_names: list[str] | None = None) -> int:
-    try:
-        jobs = oc.selector("jobs").objects()
-        if not jobs:
-            print("No jobs found.")
-            return 0
-
-        job_dict = {job.model.metadata.name: job for job in jobs}
-
-        if job_names:
-            for name in job_names:
-                if name not in job_dict:
-                    print(f"{name} does not exist; cannot fetch pod name.")
-                    continue
-                print_pods_for(name)
-        else:
-            print("Displaying pods for all current batch jobs:\n")
-            for name in job_dict.keys():
-                print_pods_for(name)
-
-    except OpenShiftPythonException as e:
-        print("Error occurred while retrieving pods:")
-        print(e)
-        traceback.print_exc()
-        return 1
-
-    return 0
-
-def bq(args) -> int:
-    try:
-        clusterqueues = oc.selector("clusterqueue").objects()
-        if not clusterqueues:
-            print("No ClusterQueues found.")
-            return 0
-
-        for cq in clusterqueues:
-            cq_dict = cq.as_dict() if hasattr(cq, "as_dict") else cq.model.to_dict()
-            meta = cq_dict.get("metadata", {})
-            spec = cq_dict.get("spec", {})
-            status = cq_dict.get("status", {})
-
-            # calculate total GPUs across resourceGroups/flavors
-            total_gpu = 0
-            for rg in spec.get("resourceGroups", []) or []:
-                for flav in rg.get("flavors", []) or []:
-                    for res in flav.get("resources", []) or []:
-                        if res.get("name") == "nvidia.com/gpu":
-                            try:
-                                total_gpu += int(res.get("nominalQuota", 0))
-                            except (TypeError, ValueError):
-                                continue
-
-            admitted = status.get("admittedWorkloads", 0)
-            pending = status.get("pendingWorkloads", 0)
-            reserving = status.get("reservingWorkloads", 0)
-            queueing = spec.get("queueingStrategy", "")
-
-            print(
-                f"{meta.get('name', '')}\t"
-                f"admitted: {admitted}\t"
-                f"pending: {pending}\t"
-                f"reserved: {reserving}\t"
-                f"GPUs: {total_gpu}\t"
-                f"{queueing}"
-            )
-
-    except OpenShiftPythonException as e:
-        print("Error occurred while retrieving ClusterQueues:")
-        print(e)
-        traceback.print_exc()
-        return 1
-
-# MCHECK: should it always run verbose?
-def bps(nodes: list[str] | None = None, verbose: bool = False) -> int:
-    try:
-        with oc.timeout(120):
-            # Fetch all pods across all namespaces; filter in Python
-            all_pods = oc.selector("pods", all_namespaces=True).objects()
-
-        if nodes:
-            # Summarize for each requested node separately
-            node_set = set(nodes)
-            # Filter to Running pods on requested nodes
-            pods_for_nodes = [
-                p for p in all_pods
-                if getattr(p.model.status, "phase", None) == "Running"
-                and (getattr(p.model.spec, "nodeName", None) or "") in node_set
-            ]
-            # Group by node
-            pods_by_node = defaultdict(list)
-            for p in pods_for_nodes:
-                n = getattr(p.model.spec, "nodeName", None) or ""
-                pods_by_node[n].append(p)
-
-            for node in nodes:
-                lines = _summarize_gpu_pods(pods_by_node.get(node, []), verbose)
-                if not lines and verbose:
-                    print(f"{node}: FREE")
-                else:
-                    for ln in lines:
-                        print(ln)
-        else:
-            # One global summary over all Running pods
-            running = [p for p in all_pods if getattr(p.model.status, "phase", None) == "Running"]
-            for ln in _summarize_gpu_pods(running, verbose):
-                print(ln)
-
-        return 0
-
-    except OpenShiftPythonException as e:
-        print("Error interacting with OpenShift:", e)
-        return 1
 
 def br(args) -> int:
     DEFAULT_QUEUES = {
