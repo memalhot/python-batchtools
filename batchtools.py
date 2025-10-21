@@ -1,4 +1,4 @@
-from common_imports import *
+from imports import *
 from bj import bj
 
 
