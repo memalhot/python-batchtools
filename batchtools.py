@@ -1,15 +1,4 @@
-import openshift_client as oc
-from openshift_client import Context, OpenShiftPythonException
-import traceback
-import argparse
-import sys
-from collections import defaultdict
-import subprocess
-from typing import Any
-import os
-import time
-import sys
-from pathlib import Path
+from common_imports import *
 from bj import bj
 
 
@@ -265,25 +254,6 @@ def _summarize_gpu_pods(pods, verbose: bool) -> list[str]:
         elif verbose:
             lines.append(f"{node}: FREE")
     return lines
-
-# # MCHECK: NEED TO FIX WATCH BUG
-# def bj(watch: bool) -> int:
-#     """
-#     Display the status of gpu jobs using 'oc get jobs'.
-#     """
-#     try:
-#         jobs = oc.selector("jobs").objects()
-#         if not jobs:
-#             print("No jobs found.")
-#             return
-#         print(f"Found {len(jobs)} jobs:\n")
-#         for job in jobs:
-#             print(f"- {job.model.metadata.name}")
-#     except OpenShiftPythonException as e:
-#         print("Error occurred while retrieving jobs:")
-#         print(e)
-
-#     return 0
 
 
 # MCHECK: NEEDS PERMISSIONS TO BE TESTED
