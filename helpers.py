@@ -22,8 +22,12 @@ def get_cmd(command:str) -> str:
 
 
 def pretty_print(pod_name:str) -> str:
-    logs = oc.selector(f"pod/{pod_name}").logs()
-
-     # ⋆ ˚｡⋆୨୧˚ stringify and pretty print for readibility ⋆ ˚｡⋆୨୧˚
-    logs = str(logs).replace("\\n", "\n")
-    return logs
+    try:
+        logs = oc.selector(f"pod/{pod_name}").logs()
+        # ⋆ ˚｡⋆୨୧˚ stringify and pretty print for readibility ⋆ ˚｡⋆୨୧˚
+        logs = str(logs).replace("\\n", "\n")
+        return logs
+    except OpenShiftPythonException as e:
+        print("Error occurred while retrieving logs:")
+        print(e)
+        return 1
