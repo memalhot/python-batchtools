@@ -1,6 +1,6 @@
 from imports import *
 
-def _summarize_gpu_pods(pods, verbose: bool) -> list[str]:
+def summarize_gpu_pods(pods, verbose: bool) -> list[str]:
     totals = defaultdict(int)
     busy_pods = defaultdict(set)
     seen_nodes = set()
