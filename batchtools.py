@@ -244,7 +244,8 @@ def main(argv=None) -> int:
         return br(args)
     
     elif args.cmd == "bps":
-        return bps(args)
+        # so nodes is iterable in bps
+        return bps(getattr(args, "nodes", None), getattr(args, "verbose", False))
 
     # should never return here
     return 2
