@@ -61,11 +61,10 @@ def prepare_context_and_getlist(context: int, context_dir: str, jobs_dir: str, o
         sys.exit(-1)
 
     jdir_rel: str | None = None
-    try:
-        # Is jobs_dir directly under context_dir?
-        if jobs.parent.resolve() == ctx:
-            jdir_rel = f"./{jobs.name}"
-    except Exception:
+    # Is jobs_dir directly under context_dir?
+    if jobs.parent.resolve() == ctx:
+        jdir_rel = f"./{jobs.name}"
+    else:
         jdir_rel = None
 
     entries: list[str] = []

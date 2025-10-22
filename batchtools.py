@@ -3,6 +3,7 @@ from helpers import is_logged_in
 from bj import bj
 from bl import bl
 from bd import bd
+from bq import bq
 from bps import bps
 from bp import bp
 from br import br
