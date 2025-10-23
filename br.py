@@ -4,7 +4,7 @@ from build_yaml import build_job_body
 
 def get_pod_status(pod_name: str, namespace: str | None = None) -> str:
     """
-    Return the current status.phase of a pod (e.g. Pending, Running, Succeeded, Failed).
+    Return the current status.phase of a pod (Pending, Running, Succeeded, Failed).
     """
     pod = oc.selector(f"pod/{pod_name}").object()
     return pod.model.status.phase or "Unknown"
@@ -31,7 +31,7 @@ def log_job_output(job_name: str, *, wait: int, timeout: int | None) -> None:
             if timeout and (time.monotonic() - start) > timeout:
                 print(f"Timeout waiting for pod {pod_name} to complete")
                 return
-            time.sleep(5)
+            time.sleep(2)
 
     print(pretty_print(pod_name))
 
@@ -61,7 +61,7 @@ def prepare_context_and_getlist(context: int, context_dir: str, jobs_dir: str, o
         sys.exit(-1)
 
     jdir_rel: str | None = None
-    # Is jobs_dir directly under context_dir?
+    # Is jobs_dir directly under context_dir? if yes create relative path of jobs
     if jobs.parent.resolve() == ctx:
         jdir_rel = f"./{jobs.name}"
     else:
@@ -76,7 +76,7 @@ def prepare_context_and_getlist(context: int, context_dir: str, jobs_dir: str, o
             continue
         entries.append(rel)
 
-    # Write GETLIST
+    # write files to get list
     try:
         gl.parent.mkdir(parents=True, exist_ok=True)
         gl.write_text("\n".join(entries) + ("\n" if entries else ""))
