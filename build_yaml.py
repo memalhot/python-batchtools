@@ -51,7 +51,7 @@ def build_job_body(
                 f"--files-from={job_workspace}/getlist "
                 f"{devpod_name}:{context_dir}/ {job_workspace}/ && "
                 f"find {job_workspace} -mindepth 1 -maxdepth 1 > {job_workspace}/gotlist && "
-                f"cd {job_workspace} && {cmdline} |& tee {job_workspace}.log; cd ..; "
+                f"cd {job_workspace} && {cmdline} |& tee {job_name}.log; cd ..; "
                 f"rsync {rsync_verbose} --archive --no-owner --no-group "
                 f"--omit-dir-times --no-relative --numeric-ids "
                 f"--exclude-from={job_workspace}/gotlist "
