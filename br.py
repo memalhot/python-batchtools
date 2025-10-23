@@ -33,9 +33,7 @@ def log_job_output(job_name: str, *, wait: int, timeout: int | None) -> None:
             if timeout and (time.monotonic() - start) > timeout:
                 print(f"Timeout waiting for pod {pod_name} to complete")
                 return
-            # # MCHECK : IDK IF WE NEED SLEEP 
-            # time.sleep(2)
-
+            # sleep.time(1)
     print(pretty_print(pod_name))
 
 def prepare_context_and_getlist(context: int, context_dir: str, jobs_dir: str, output_dir: str, getlist_path: str) -> None:    
