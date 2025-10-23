@@ -2,6 +2,8 @@ from helpers import *
 from imports import *
 from build_yaml import build_job_body
 
+# https://piazza.com/class/me4rjds6oce507/post/23
+
 def get_pod_status(pod_name: str, namespace: str | None = None) -> str:
     """
     Return the current status.phase of a pod (Pending, Running, Succeeded, Failed).
@@ -31,7 +33,8 @@ def log_job_output(job_name: str, *, wait: int, timeout: int | None) -> None:
             if timeout and (time.monotonic() - start) > timeout:
                 print(f"Timeout waiting for pod {pod_name} to complete")
                 return
-            time.sleep(2)
+            # # MCHECK : IDK IF WE NEED SLEEP 
+            # time.sleep(2)
 
     print(pretty_print(pod_name))
 
