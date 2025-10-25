@@ -1,0 +1,11 @@
+{
+	"reportUnusedCallResult": false,
+	"reportUnknownMemberType": false,
+	"reportUnknownVariableType": false,
+	"reportUnknownArgumentType": false,
+	"reportUnknownParameterType": false,
+	"reportUnknownLambdaType": false,
+	"reportMissingTypeStubs": false,
+	"reportImplicitStringConcatenation": false,
+	"analyzeUnannotatedFunctions": false
+}
