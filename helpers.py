@@ -13,19 +13,6 @@ def is_logged_in() -> bool:
         )
         return False
 
-
-def get_cmd(command: str) -> str:
-    """
-    Helper function to print the hostname using subprocess.
-    """
-    try:
-        return subprocess.check_output([command], text=True).strip()
-    except subprocess.CalledProcessError as e:
-        sys.exit(
-            f"Error: command failed with exit code {e.returncode}{': ' + e.stderr.strip() if e.stderr else ''}"
-        )
-
-
 def pretty_print(pod: oc.APIObject) -> str:
     formatted_logs: str = ""
     try:
