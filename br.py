@@ -225,8 +225,7 @@ class CreateJobCommand(Command):
             print(f"oc delete job {job_name}")
 
 
-# XXX: namespace parameter is not used
-def get_pod_status(pod_name: str, namespace: str | None = None) -> str:
+def get_pod_status(pod_name: str | None = None) -> str:
     """
     Return the current status.phase of a pod (Pending, Running, Succeeded, Failed).
     """
@@ -256,4 +255,5 @@ def log_job_output(job_name: str, *, wait: bool, timeout: int | None) -> None:
             if timeout and (time.monotonic() - start) > timeout:
                 print(f"Timeout waiting for pod {pod_name} to complete")
                 return
-    print(pretty_print(pod_name))
+    # pass in the pod object to get logs from, not the name
+    print(pretty_print(pod))
