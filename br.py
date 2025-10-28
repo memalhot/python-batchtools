@@ -19,6 +19,7 @@ from file_setup import prepare_context
 
 # change pid -> make temp
 
+
 class CreateJobCommandArgs(argparse.Namespace):
     gpu: str = "v100"
     image: str = "image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/csw-run-f25:latest"
@@ -258,5 +259,8 @@ def log_job_output(job_name: str, *, wait: bool, timeout: int | None) -> None:
                 print(f"Deleting pod {pod_name}")
                 oc_delete(job_name)
                 return
+
+            # sleep to avoid hammering the server
+            time.sleep(2)
     # pass in the pod object to get logs from, not the name
     print(pretty_print(pod))
