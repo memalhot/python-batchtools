@@ -57,7 +57,7 @@ mkdir -p {job_name} &&
 cd ..
 rsync -q --archive --no-owner --no-group \
     --omit-dir-times --no-relative --numeric-ids  \
-    --exclude={'{job_name}/gotlist', '{job_name}/getlist'} \
+    --exclude-from={job_name}/gotlist \
     {job_name} {devpod_name}:{jobs_dir}
 """
             ),

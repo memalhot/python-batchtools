@@ -17,8 +17,6 @@ from helpers import pretty_print
 from helpers import oc_delete
 from file_setup import prepare_context
 
-# change pid -> make temp
-
 
 class CreateJobCommandArgs(argparse.Namespace):
     gpu: str = "v100"
@@ -208,7 +206,7 @@ class CreateJobCommand(Command):
 
             print(f"Creating job {job_name} in {queue_name}...")
             oc.create(job_body)
-            print(f"Job: {job_name} created successfully. Now checking pod.")
+            print(f"Job: {job_name} created successfully. Now checking pod...")
             if args.wait:
                 log_job_output(job_name=job_name, wait=True, timeout=args.timeout)
 
@@ -216,7 +214,7 @@ class CreateJobCommand(Command):
             sys.exit(f"Error occurred while creating job: {e}")
 
         if args.job_delete and args.wait:
-            print(f"RUNDIR: job/{job_name}")
+            print(f"RUNDIR: jobs/{job_name}")
             oc_delete(job_name)
         else:
             print(
