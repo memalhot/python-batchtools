@@ -79,7 +79,6 @@ class ListPodsCommand(Command):
             sys.exit(f"Error interacting with OpenShift: {e}")
 
 
-# BUGG
 def summarize_gpu_pods(pods, verbose: bool) -> list[str]:
     totals: defaultdict[str, int] = defaultdict(int)
     busy_pods: defaultdict[str, set[str]] = defaultdict(set)

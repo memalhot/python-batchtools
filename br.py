@@ -207,7 +207,7 @@ class CreateJobCommand(Command):
 
             print(f"Creating job {job_name} in {queue_name}...")
             oc.create(job_body)
-            print(f"Job: {job_name} created successfully.")
+            print(f"Job: {job_name} created successfully. Now checking pod.")
             if args.wait:
                 log_job_output(job_name=job_name, wait=True, timeout=args.timeout)
 
@@ -215,6 +215,7 @@ class CreateJobCommand(Command):
             sys.exit(f"Error occurred while creating job: {e}")
 
         if args.job_delete and args.wait:
+            print(f"RUNDIR: job/{job_name}")
             oc_delete(job_name)
         else:
             print(
@@ -254,6 +255,7 @@ def log_job_output(job_name: str, *, wait: bool, timeout: int | None) -> None:
                 break
             if timeout and (time.monotonic() - start) > timeout:
                 print(f"Timeout waiting for pod {pod_name} to complete")
+                print(f"Deleting pod {pod_name}")
                 oc_delete(job_name)
                 return
     # pass in the pod object to get logs from, not the name
