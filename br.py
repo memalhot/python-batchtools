@@ -1,5 +1,6 @@
 from typing import cast
-from typing import override
+import typing_extensions
+from typing_extensions import override
 
 import argparse
 import os
@@ -16,9 +17,7 @@ from helpers import pretty_print
 from helpers import oc_delete
 from file_setup import prepare_context
 
-# https://piazza.com/class/me4rjds6oce507/post/23 -> oc exec -c csw-dev csw-dev-0 -- python3 work/python-batchtools/batchtools.py br nvidia-smi
 # change pid -> make temp
-
 
 class CreateJobCommandArgs(argparse.Namespace):
     gpu: str = "v100"

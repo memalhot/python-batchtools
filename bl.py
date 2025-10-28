@@ -1,4 +1,5 @@
-from typing import override
+import typing_extensions
+from typing_extensions import override
 from typing import cast
 
 import sys
