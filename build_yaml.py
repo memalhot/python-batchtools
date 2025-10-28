@@ -82,8 +82,6 @@ rsync -q --archive --no-owner --no-group \
             "activeDeadlineSeconds": max_sec,
             "template": {
                 "spec": {
-                    # XXX: This is not a valid attribute for a kubernetes job.
-                    "maximumExecutionTimeSeconds": max_sec,
                     "restartPolicy": "Never",
                     "containers": [
                         {

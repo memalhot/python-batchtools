@@ -254,6 +254,7 @@ def log_job_output(job_name: str, *, wait: bool, timeout: int | None) -> None:
                 break
             if timeout and (time.monotonic() - start) > timeout:
                 print(f"Timeout waiting for pod {pod_name} to complete")
+                oc_delete(job_name)
                 return
     # pass in the pod object to get logs from, not the name
     print(pretty_print(pod))
