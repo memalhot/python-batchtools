@@ -1,29 +1,29 @@
-from imports import *
+import sys
+from pathlib import Path
 
-def prepare_context(context: int, context_dir: str, jobs_dir: str, output_dir: str, getlist_path: str) -> None:    
+
+def prepare_context(
+    context: int, context_dir: str, jobs_dir: str, output_dir: str, getlist_path: str
+) -> None:
     if not context:
         return
-        
+
     ctx = Path(context_dir).resolve()
     out = Path(output_dir).resolve()
-    gl  = Path(getlist_path).resolve()
+    gl = Path(getlist_path).resolve()
     jobs = Path(jobs_dir).resolve()
 
     if not ctx.is_dir():
-        print(f"ERROR: CONTEXT_DIR: {ctx} is not a directory")
-        sys.exit(-1)
+        sys.exit(f"ERROR: CONTEXT_DIR: {ctx} is not a directory")
 
     if out.exists():
-        print(f"ERROR: {out} directory already exists")
-        sys.exit(-1)
+        sys.exit(f"ERROR: {out} directory already exists")
     try:
         out.mkdir(parents=True, exist_ok=False)
     except FileExistsError:
-        print("ERROR: Failed to make output dir (already exists)")
-        sys.exit(-1)
+        sys.exit("ERROR: Failed to make output dir (already exists)")
     except Exception as e:
-        print(f"ERROR: Failed to make output dir: {e}")
-        sys.exit(-1)
+        sys.exit(f"ERROR: Failed to make output dir: {e}")
 
     jdir_rel: str | None = None
     # Is jobs_dir directly under context_dir? if yes create relative path of jobs
@@ -47,4 +47,4 @@ def prepare_context(context: int, context_dir: str, jobs_dir: str, output_dir: s
         gl.write_text("\n".join(entries) + ("\n" if entries else ""))
     except Exception as e:
         print(f"ERROR: Failed to write getlist at {gl}: {e}")
-        sys.exit(-1)
+        sys.exit(1)
