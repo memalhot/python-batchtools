@@ -38,23 +38,26 @@ def build_job_body(
     if context:
         print("copying context")
         command = [
-            "/bin/sh",
+            "/bin/bash",
             "-c",
             (
                 f"""
+set -e
 export RSYNC_RSH='oc rsh -c {devcontainer}'
 
-mkdir -p {job_name} && 
-    rsync -q --archive --no-owner --no-group --omit-dir-times \
-        --numeric-ids {devpod_name}:{getlist_path} {job_name}/getlist >&/dev/null &&
-    rsync -q -r --archive --no-owner --no-group \
-        --omit-dir-times --numeric-ids --files-from={job_name}/getlist \
-        {devpod_name}:{context_dir}/ {job_name}/ &&
-    find {job_name} -mindepth 1 -maxdepth 1 > {job_name}/gotlist &&
-    cd {job_name} && 
-    {cmdline} |& tee {job_name}.log
+mkdir -p {job_name}
 
-cd ..
+rsync -q --archive --no-owner --no-group --omit-dir-times \
+    --numeric-ids {devpod_name}:{getlist_path} {job_name}/getlist
+rsync -q -r --archive --no-owner --no-group \
+    --omit-dir-times --numeric-ids --files-from={job_name}/getlist \
+    {devpod_name}:{context_dir}/ {job_name}/
+find {job_name} -mindepth 1 -maxdepth 1 > {job_name}/gotlist
+
+(
+  cd {job_name} && {cmdline} |& tee {job_name}.log
+)
+
 rsync -q --archive --no-owner --no-group \
     --omit-dir-times --no-relative --numeric-ids  \
     --exclude-from={job_name}/gotlist \
@@ -63,7 +66,7 @@ rsync -q --archive --no-owner --no-group \
             ),
         ]
     else:
-        command = ["/bin/sh", "-c", cmdline]
+        command = ["/bin/bash", "-c", cmdline]
 
     body = {
         "apiVersion": "batch/v1",
