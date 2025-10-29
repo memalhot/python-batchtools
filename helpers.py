@@ -8,9 +8,6 @@ def is_logged_in() -> bool:
         oc.invoke("whoami")
         return True
     except oc.OpenShiftPythonException:
-        print(
-            "You are not logged in to the oc cli. Retrieve the token using 'oc login --web' or retrieving the login token from the openshift UI."
-        )
         return False
 
 def pretty_print(pod: oc.APIObject) -> str:

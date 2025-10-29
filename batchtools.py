@@ -59,7 +59,7 @@ class BatchTools:
 
 def main() -> None:
     if not is_logged_in():
-        sys.exit("not logged in")
+        sys.exit("You are not logged in to the oc cli. Retrieve the token using 'oc login --web' or retrieving the login token from the openshift UI.")
 
     app = BatchTools()
     app.run()
