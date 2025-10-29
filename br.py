@@ -54,7 +54,7 @@ class CreateJobCommand(Command):
     RUNDIR: jobs/job-v100-9215
 
     2. Specify GPU type and image for a training job
-    $ br --gpu a100 --image quay.io/user/train:latest python train.py --epochs 5
+    $ br --gpu a100 --image quay.io/user/train:latest cuda-code
 
     3. Submit without waiting for completion
     $ br --wait 0 ./long_running_task.sh
