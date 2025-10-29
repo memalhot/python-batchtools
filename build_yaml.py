@@ -17,7 +17,6 @@ def build_job_body(
     devcontainer: str,
     context_dir: str,
     jobs_dir: str,
-    job_workspace: str,
     getlist_path: str,
 ) -> dict[str, Any]:
     """

@@ -1,5 +1,3 @@
-import sys
-import subprocess
 import openshift_client as oc
 
 
