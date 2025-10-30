@@ -74,17 +74,16 @@ def test_create_job_nowait(
             "activeDeadlineSeconds": 900,
             "template": {
                 "spec": {
-                    "maximumExecutionTimeSeconds": 900,
                     "restartPolicy": "Never",
                     "containers": [
                         {
                             "name": "job-v100-123-container",
                             "image": "image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/csw-run-f25:latest",
                             "command": [
-                                "/bin/sh",
+                                "/bin/bash",
                                 "-c",
-                                f"\nexport RSYNC_RSH='oc rsh -c container1'\n\nmkdir -p job-v100-123 && \n    rsync -q --archive --no-owner --no-group --omit-dir-times         --numeric-ids testhost:{tempdir}/jobs/job-v100-123/getlist job-v100-123/getlist >&/dev/null &&\n    rsync -q -r --archive --no-owner --no-group         --omit-dir-times --numeric-ids --files-from=job-v100-123/getlist         testhost:{tempdir}/ job-v100-123/ &&\n    find job-v100-123 -mindepth 1 -maxdepth 1 > job-v100-123/gotlist &&\n    cd job-v100-123 && \n     |& tee job-v100-123.log\n\ncd ..\nrsync -q --archive --no-owner --no-group     --omit-dir-times --no-relative --numeric-ids      --exclude-from=job-v100-123/gotlist     job-v100-123 testhost:{tempdir}/jobs\n",
-                            ],
+                                f"\nset -e\nexport RSYNC_RSH='oc rsh -c container1'\n\nmkdir -p job-v100-123\n\nrsync -q --archive --no-owner --no-group --omit-dir-times     --numeric-ids testhost:{tempdir}/jobs/job-v100-123/getlist job-v100-123/getlist\nrsync -q -r --archive --no-owner --no-group     --omit-dir-times --numeric-ids --files-from=job-v100-123/getlist     testhost:{tempdir}/ job-v100-123/\nfind job-v100-123 -mindepth 1 -maxdepth 1 > job-v100-123/gotlist\n\n(\n  cd job-v100-123 &&  |& tee job-v100-123.log\n)\n\nrsync -q --archive --no-owner --no-group     --omit-dir-times --no-relative --numeric-ids      --exclude-from=job-v100-123/gotlist     job-v100-123 testhost:{tempdir}/jobs\n",
+                        ],
                             "resources": {
                                 "requests": {"nvidia.com/gpu": "1"},
                                 "limits": {"nvidia.com/gpu": "1"},
