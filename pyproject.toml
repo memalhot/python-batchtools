@@ -1,20 +1,26 @@
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "python-batchtools"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10"
-dependencies = [
-    "kubernetes-typed>=18.20.2",
-    "openshift-client>=2.0.5",
-    "typing-extensions>=4.15.0",
-]
+requires-python = ">=3.11"
+dependencies = ["openshift-client>=2.0.5", "typing-extensions>=4.15.0"]
+
+[project.scripts]
+# When we install the project, this causes the installer to create a
+# "batchtools" script that will run our main function.
+batchtools = "batchtools.batchtools:main"
 
 [dependency-groups]
 dev = ["pytest>=8.4.2", "pytest-cov>=7.0.0", "ty>=0.0.1a24"]
 
 [tool.basedpyright]
-
+# This configures the "basedpyright" type checker to ignore a variety of
+# issues that crop up when working with non-type-aware Python code.
 ignore = ["**/tests"]
 reportUnusedCallResult = false
 reportUnknownMemberType = false
@@ -28,7 +34,15 @@ analyzeUnannotatedFunctions = false
 
 
 [tool.pytest.ini_options]
+# These options will be added to the pytest command line automatically.
 addopts = "--cov=. --cov-report=html"
 
 [tool.coverage.report]
 omit = ["tests/*"]
+
+[tool.setuptools]
+# This tells packaging tools which top-level directories correspond to
+# Python packages. Without this, package builds will fail if there are
+# multiple top-level directories ("error: Multiple top-level packages
+# discovered in a flat-layout")
+packages = ["batchtools"]
