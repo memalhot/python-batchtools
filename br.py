@@ -261,9 +261,9 @@ def log_job_output(job_name: str, *, wait: bool, timeout: int | None) -> None:
             phase = get_pod_status(pod_name)
             if phase in ("Succeeded", "Failed"):
                 print(f"Pod, {pod_name} finished with phase={phase}")
-                end = time.monotonic()
+                # end = time.monotonic()
                 # for logging information
-                elapsed = end - start
+                # elapsed = end - start
                 break
             if timeout and (time.monotonic() - start) > timeout:
                 print(f"Timeout waiting for pod {pod_name} to complete")

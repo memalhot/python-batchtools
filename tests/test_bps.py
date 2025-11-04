@@ -7,27 +7,31 @@ from typing import Any
 from bps import ListPodsCommand, summarize_gpu_pods
 
 
-def create_pod(name: str, namespace: str, node: str, phase: str, gpu_count: int) -> mock.Mock:
+def create_pod(
+    name: str, namespace: str, node: str, phase: str, gpu_count: int
+) -> mock.Mock:
     """Helper to create a properly structured mock pod object."""
     pod = mock.Mock()
-    
+
     pod.model = mock.Mock()
     pod.model.metadata = mock.Mock()
     pod.model.metadata.name = name
     pod.model.metadata.namespace = namespace
-    
+
     pod.model.status = mock.Mock()
     pod.model.status.phase = phase
-    
+
     pod.model.spec = mock.Mock()
     pod.model.spec.nodeName = node
-    
+
     container = mock.Mock()
     container.resources = mock.Mock()
-    container.resources.requests = {"nvidia.com/gpu": gpu_count} if gpu_count > 0 else {}
-    
+    container.resources.requests = (
+        {"nvidia.com/gpu": gpu_count} if gpu_count > 0 else {}
+    )
+
     pod.model.spec.containers = [container]
-    
+
     return pod
 
 
@@ -135,15 +139,18 @@ def test_multiple_pods_same_node(args: argparse.Namespace, capsys):
         assert "default/pod-1" in captured.out
         assert "default/pod-2" in captured.out
 
+
 def test_summarize_gpu_pods_empty():
     result = summarize_gpu_pods([], verbose=False)
     assert result == []
+
 
 def test_summarize_gpu_pods_with_gpu():
     pods = [create_pod("test-pod", "default", "node-a", "Running", 2)]
     result = summarize_gpu_pods(pods, verbose=False)
     assert len(result) == 1
     assert "node-a: BUSY 2 default/test-pod" in result[0]
+
 
 def test_summarize_gpu_pods_multiple_containers():
     # base pod with one GPU container
@@ -166,7 +173,8 @@ def test_list_pods_openshift_exception(args: argparse.Namespace, capsys):
     with mock.patch("openshift_client.selector") as mock_selector:
         with mock.patch("openshift_client.timeout"):
             import openshift_client as oc
+
             mock_selector.side_effect = oc.OpenShiftPythonException("Connection failed")
-            
+
             with pytest.raises(SystemExit):
                 ListPodsCommand.run(args)
