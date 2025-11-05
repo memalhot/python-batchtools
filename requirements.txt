@@ -1,2 +1,0 @@
-openshift-client
-typing_extensions

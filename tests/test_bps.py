@@ -4,7 +4,7 @@ from unittest import mock
 from contextlib import contextmanager
 from typing import Any
 
-from bps import ListPodsCommand, summarize_gpu_pods
+from batchtools.bps import ListPodsCommand, summarize_gpu_pods
 
 
 def create_pod(
