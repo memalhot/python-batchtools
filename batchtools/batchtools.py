@@ -32,6 +32,7 @@ class BatchTools:
             "--verbose",
             "-v",
             action="count",
+            default=0,
             help="Increase verbosity of output",
         )
 

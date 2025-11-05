@@ -225,7 +225,7 @@ class CreateJobCommand(Command):
 
         if args.job_delete and args.wait:
             print(f"RUNDIR: jobs/{job_name}")
-            oc_delete(job_name)
+            oc_delete("job", job_name)
         else:
             print(
                 f"User specified not to wait, or not to delete, so {job_name} must be deleted by user."
@@ -268,7 +268,7 @@ def log_job_output(job_name: str, *, wait: bool, timeout: int | None) -> None:
             if timeout and (time.monotonic() - start) > timeout:
                 print(f"Timeout waiting for pod {pod_name} to complete")
                 print(f"Deleting pod {pod_name}")
-                oc_delete(job_name)
+                oc_delete("job", job_name)
                 return
 
             # sleep to avoid hammering the server

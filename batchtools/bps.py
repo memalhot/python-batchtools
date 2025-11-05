@@ -11,14 +11,16 @@ from .basecommand import SubParserFactory
 
 
 class ListPodsCommandArgs(argparse.Namespace):
-    verbose: int = 0
+    verbose: int | None = 0
     node_names: list[str] = []
 
 
 class ListPodsCommand(Command):
     """
-    List active GPU pods per node. By default prints only BUSY nodes.
-    With -v/--verbose, prints FREE for nodes seen with Running pods but 0 GPUs.
+    batchtools [-v] bps [-h] [node-name [node-name ...]]
+
+    List active GPU pods per node. By default prints only BUSY nodes. So, it all nodes are FREE, it will return empty nodes/
+    With -v/--verbose, prints FREE for nodes that have Running pods but 0 GPUs.
     """
 
     name: str = "bps"
@@ -35,43 +37,45 @@ class ListPodsCommand(Command):
     @override
     def run(args: argparse.Namespace):
         args = cast(ListPodsCommandArgs, args)
+        v = args.verbose or 0  # treat None as 0
+
         try:
             with oc.timeout(120):
                 all_pods = oc.selector("pods", all_namespaces=True).objects()
 
             if args.node_names:
-                # get individual nodes without repeats
+                # filter to Running pods on requested nodes
                 node_set = set(args.node_names)
-                # Filter to Running pods on requested nodes
                 pods_for_nodes = [
                     p
                     for p in all_pods
                     if getattr(p.model.status, "phase", None) == "Running"
                     and (getattr(p.model.spec, "nodeName", None) or "") in node_set
                 ]
+
                 # Group by node
-                pods_by_node = defaultdict(list)
+                pods_by_node: dict[str, list] = defaultdict(list)
                 for p in pods_for_nodes:
                     n = getattr(p.model.spec, "nodeName", None) or ""
                     pods_by_node[n].append(p)
 
+                # Emit per requested node (only those requested)
                 for node in node_set:
-                    lines = summarize_gpu_pods(
-                        pods_by_node.get(node, []), args.verbose > 0
-                    )
-                    if not lines and args.verbose:
+                    lines = summarize_gpu_pods(pods_by_node.get(node, []), v > 0)
+                    if not lines and v > 0:
                         print(f"{node}: FREE")
                     else:
                         for ln in lines:
                             print(ln)
+
             else:
-                # One global summary over all Running pods
+                # Global summary over all Running pods
                 running = [
                     p
                     for p in all_pods
                     if getattr(p.model.status, "phase", None) == "Running"
                 ]
-                for ln in summarize_gpu_pods(running, args.verbose > 0):
+                for ln in summarize_gpu_pods(running, v > 0):
                     print(ln)
 
         except oc.OpenShiftPythonException as e:
@@ -105,7 +109,7 @@ def summarize_gpu_pods(pods, verbose: bool) -> list[str]:
         except Exception:
             continue
 
-    lines = []
+    lines: list[str] = []
     nodes = sorted(seen_nodes or totals.keys())
     for node in nodes:
         total = totals.get(node, 0)

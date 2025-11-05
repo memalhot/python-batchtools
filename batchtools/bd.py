@@ -70,13 +70,13 @@ class DeleteJobsCommand(Command):
                     if name not in found:
                         print(f"{name} is not a GPU job and cannot be deleted.")
                         continue
-                    oc_delete(name)
+                    oc_delete("job", name)
             else:
                 # case where user does not provide jobs to delete, delete all
                 print("No job names provided -> deleting all GPU workloads:\n")
                 for job in gpu_jobs:
                     name = job.model.metadata.name
-                    oc_delete(name)
+                    oc_delete("job", name)
 
         except oc.OpenShiftPythonException as e:
             sys.exit(f"Error occurred while deleting jobs: {e}")

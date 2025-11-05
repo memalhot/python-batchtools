@@ -21,9 +21,9 @@ def pretty_print(pod: oc.APIObject) -> str:
     return formatted_logs
 
 
-def oc_delete(job_name: str) -> None:
+def oc_delete(obj_type: str, obj_name: str) -> None:
     try:
-        print(f"Deleting {job_name}")
-        oc.invoke("delete", ["job", job_name])
+        print(f"Deleting {obj_type}/{obj_name}")
+        oc.selector(f"{obj_type}/{obj_name}").delete()
     except oc.OpenShiftPythonException as e:
-        print(f"Error occurred while deleting job: {e}")
+        print(f"Error occurred while deleting {obj_type}/{obj_name}: {e}")
