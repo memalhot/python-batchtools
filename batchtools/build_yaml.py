@@ -58,7 +58,7 @@ def build_job_body(
 
     # - when context is False, just run the provided command via /bin/sh -
     if context:
-        print("copying context")
+        print("Copying context")
         command = [
             "/bin/bash",
             "-c",

@@ -5,10 +5,13 @@ import sys
 import openshift_client as oc
 
 from .basecommand import Command
+from .helpers import is_kueue_managed_job
 
 
 class ListJobsCommand(Command):
     """
+    batchtools bj
+
     Display the status of your jobs. This includes all jobs that have not been deleted.
 
     Note:
@@ -16,8 +19,6 @@ class ListJobsCommand(Command):
     'brun' deletes jobs by default. However, if you specified WAIT=0 to 'brun',
     then it will not delete the job.
 
-    See also:
-        'brun -h' and the repository README.md for more documentation and examples.
     """
 
     name: str = "bj"
@@ -35,9 +36,10 @@ class ListJobsCommand(Command):
                 print("No jobs found.")
                 return
 
-            print(f"Found {len(jobs)} jobs:\n")
+            print(f"Found {len(jobs)} job(s):\n")
             for job in jobs:
-                print(f"- {job.model.metadata.name}")
+                if is_kueue_managed_job(job):
+                    print(f"- {job.model.metadata.name}")
 
         except oc.OpenShiftPythonException as e:
             sys.exit(f"Error occurred while retrieving jobs: {e}")
