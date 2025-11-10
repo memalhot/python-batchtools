@@ -5,7 +5,8 @@ import tempfile
 import argparse
 
 import batchtools.build_yaml
-from batchtools.br import CreateJobCommand
+
+from batchtools.br import CreateJobCommand, get_pod_status, log_job_output
 from tests.helpers import DictToObject
 
 
@@ -124,3 +125,104 @@ def test_create_job_nowait(
     CreateJobCommand.run(args)
 
     assert mock_create.call_args.args[0] == expected
+
+
+@mock.patch("openshift_client.create", name="create")
+@mock.patch("openshift_client.selector", name="selector")
+@mock.patch("socket.gethostname", name="gethostname")
+@mock.patch("os.getcwd", name="getcwd")
+def test_create_job_raises_from_oc_create(
+    mock_getcwd,
+    mock_gethostname,
+    mock_selector,
+    mock_create,
+    parser,
+    subparsers,
+    tmp_path,
+):
+    """OpenShiftPythonException from oc.create should exit with a helpful message."""
+    CreateJobCommand.build_parser(subparsers)
+    args = parser.parse_args(["br"])
+    args.wait = False
+    args.job_id = "boom"
+    args.gpu = "v100"
+    args.image = "img"
+    args.command = ["true"]
+
+    mock_getcwd.return_value = str(tmp_path)
+    mock_gethostname.return_value = "devpod"
+
+    devpod = DictToObject(
+        {
+            "model": {
+                "metadata": {"name": "devpod"},
+                "spec": {"containers": [{"name": "c"}]},
+            }
+        }
+    )
+    mock_selector.return_value = mock.Mock(**{"object.return_value": devpod})
+
+    import openshift_client as oc
+
+    mock_create.side_effect = oc.OpenShiftPythonException("kaboom")
+
+    with pytest.raises(SystemExit) as err:
+        CreateJobCommand.run(args)
+    assert "Error occurred while creating job: kaboom" in str(err.value)
+
+
+@mock.patch("openshift_client.selector", name="selector")
+def test_get_pod_status_running(mock_selector):
+    pod = DictToObject({"model": {"status": {"phase": "Running"}}})
+    mock_selector.return_value = mock.Mock(**{"object.return_value": pod})
+    assert get_pod_status("mypod") == "Running"
+
+
+@mock.patch("batchtools.br.oc_delete")
+@mock.patch("batchtools.br.pretty_print", return_value="LOGS")
+@mock.patch("batchtools.br.get_pod_status")
+@mock.patch("openshift_client.selector", name="selector")
+def test_log_job_output_success(
+    mock_selector, mock_get_pod_status, mock_pretty_print, mock_oc_delete, capsys
+):
+    # pod list for job
+    pod = DictToObject({"model": {"metadata": {"name": "pod-1"}}})
+    mock_selector.return_value = mock.Mock(**{"objects.return_value": [pod]})
+
+    # simulate states until success
+    mock_get_pod_status.side_effect = ["Pending", "Running", "Succeeded"]
+
+    # avoid real sleep
+    with mock.patch("time.sleep", return_value=None):
+        log_job_output("job-abc", wait=True, timeout=30)
+
+    out = capsys.readouterr().out
+    assert "finished with phase=Succeeded" in out
+    assert "LOGS" in out
+    mock_oc_delete.assert_not_called()
+
+
+@mock.patch("batchtools.br.oc_delete")
+@mock.patch("batchtools.br.get_pod_status", return_value="Running")
+@mock.patch("openshift_client.selector", name="selector")
+def test_log_job_output_timeout_deletes_job(
+    mock_selector, mock_get_pod_status, mock_oc_delete, capsys
+):
+    pod = DictToObject({"model": {"metadata": {"name": "pod-timeout"}}})
+    mock_selector.return_value = mock.Mock(**{"objects.return_value": [pod]})
+
+    # make time.monotonic jump past the timeout quickly
+    times = [0.0, 2.0]
+
+    def fake_monotonic():
+        return times.pop(0) if times else 2.0
+
+    with (
+        mock.patch("time.monotonic", side_effect=fake_monotonic),
+        mock.patch("time.sleep", return_value=None),
+    ):
+        log_job_output("job-timeout", wait=True, timeout=1)
+
+    out = capsys.readouterr().out
+    assert "Timeout waiting for pod pod-timeout to complete" in out
+    mock_oc_delete.assert_called_once_with("job", "job-timeout")
