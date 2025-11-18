@@ -29,40 +29,40 @@ def oc_delete(obj_type: str, obj_name: str) -> None:
         print(f"Error occurred while deleting {obj_type}/{obj_name}: {e}")
 
 
-def is_kueue_managed_job(job_obj) -> bool:
-    """
-    Returns True if the Job is managed by Kueue.
-    Checks:
-      1) Job has label 'kueue.x-k8s.io/queue-name'
-      2) A Workload exists that either:
-         - has an ownerReference pointing to this Job, or
-         - has label job-name=<job-name>
-    """
-    try:
-        md = job_obj.model.metadata
-        labels = getattr(md, "labels", {}) or {}
-        if "kueue.x-k8s.io/queue-name" in labels:
-            return True
+# def is_kueue_managed_job(job_obj) -> bool:
+# """
+# Returns True if the Job is managed by Kueue.
+# Checks:
+#   1) Job has label 'kueue.x-k8s.io/queue-name'
+#   2) A Workload exists that either:
+#      - has an ownerReference pointing to this Job, or
+#      - has label job-name=<job-name>
+# """
+# try:
+#     md = job_obj.model.metadata
+#     labels = getattr(md, "labels", {}) or {}
+#     if "kueue.x-k8s.io/queue-name" in labels:
+#         return True
 
-        job_name = md.name
-        try:
-            workloads = oc.selector("workloads").objects()
-        except oc.OpenShiftPythonException:
-            workloads = []
+#     job_name = md.name
+#     try:
+#         workloads = oc.selector("workloads").objects()
+#     except oc.OpenShiftPythonException:
+#         workloads = []
 
-        for wl in workloads:
-            wl_md = wl.model.metadata
-            owners = getattr(wl_md, "ownerReferences", []) or []
-            for o in owners:
-                if (
-                    getattr(o, "kind", "") == "Job"
-                    and getattr(o, "name", "") == job_name
-                ):
-                    return True
-            wl_labels = getattr(wl_md, "labels", {}) or {}
-            if wl_labels.get("job-name") == job_name:
-                return True
-    except Exception:
-        return False
+#     for wl in workloads:
+#         wl_md = wl.model.metadata
+#         owners = getattr(wl_md, "ownerReferences", []) or []
+#         for o in owners:
+#             if (
+#                 getattr(o, "kind", "") == "Job"
+#                 and getattr(o, "name", "") == job_name
+#             ):
+#                 return True
+#         wl_labels = getattr(wl_md, "labels", {}) or {}
+#         if wl_labels.get("job-name") == job_name:
+#             return True
+# except Exception:
+#     return False
 
-    return False
+# return False

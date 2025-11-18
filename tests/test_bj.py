@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from types import SimpleNamespace
 import argparse
 import openshift_client as oc
+import pytest
 
 from batchtools.bj import ListJobsCommand
 
@@ -19,88 +20,88 @@ def make_job(name: str, labels: dict | None = None):
     return job
 
 
-def make_workload_owned_by_job(job_name: str, extra_labels: dict | None = None):
-    """Create a fake Workload with ownerReferences pointing to the Job"""
-    owner = SimpleNamespace(kind="Job", name=job_name)
-    wl_md = mock.Mock()
-    wl_md.name = f"wl-for-{job_name}"
-    wl_md.ownerReferences = [owner]  # attribute-style objects
-    wl_md.labels = (extra_labels or {}) | {}  # ensure dict
-    wl_model = mock.Mock()
-    wl_model.metadata = wl_md
-    wl = mock.Mock()
-    wl.model = wl_model
-    return wl
-
-
 @contextmanager
-def patch_selector(jobs, workloads=None, raise_on: str | None = None):
+def patch_selector(jobs, raise_on: str | None = None):
     """
     Patch oc.selector so that:
-      - selector("jobs").objects() -> jobs
-      - selector("workloads").objects() -> workloads or []
-      - if raise_on == "jobs"/"workloads", that selector raises OpenShiftPythonException
+
+    - oc.selector("jobs").objects() -> jobs
+    - if raise_on == "jobs", oc.selector("jobs") raises OpenShiftPythonException
     """
-    with mock.patch("openshift_client.selector") as sel:
+    calls = []
 
-        def _sel(kind: str, *args, **kwargs):
-            if raise_on == kind:
-                raise oc.OpenShiftPythonException("test exception")
-            m = mock.Mock(name=f"selector<{kind}>")
-            if kind == "jobs":
-                m.objects.return_value = jobs
-            elif kind == "workloads":
-                m.objects.return_value = workloads or []
-            else:
-                m.objects.return_value = []
-            return m
+    def fake_selector(resource, *args, **kwargs):
+        calls.append(resource)
+        if raise_on and resource == raise_on:
+            # Mimic the real exception signature: (msg, result)
+            raise oc.OpenShiftPythonException("test exception", SimpleNamespace())
+        if resource == "jobs":
+            return SimpleNamespace(objects=lambda: jobs)
+        # Anything else returns an empty selector
+        return SimpleNamespace(objects=lambda: [])
 
-        sel.side_effect = _sel
-        yield sel
+    with mock.patch.object(oc, "selector", fake_selector):
+        yield SimpleNamespace(calls=calls)
 
 
-def test_no_jobs(capsys):
+def test_no_jobs_prints_message(capsys):
     with patch_selector([]):
         ListJobsCommand.run(argparse.Namespace())
         out = capsys.readouterr().out
-        assert "No jobs found" in out
+
+        assert "No jobs found." in out
 
 
-def test_lists_only_kueue_managed_jobs_via_label(capsys):
-    # job1 is Kueue-managed via label; job2 is not
-    job1 = make_job("job1", labels={"kueue.x-k8s.io/queue-name": "a-queue"})
-    job2 = make_job("job2")
+def test_lists_all_jobs_and_count(capsys):
+    jobs = [
+        make_job("job1", labels={"some": "label"}),
+        make_job("job2", labels={}),
+    ]
 
-    with patch_selector([job1, job2], workloads=[]):
+    with patch_selector(jobs) as sel:
         ListJobsCommand.run(argparse.Namespace())
         out = capsys.readouterr().out
 
-        # total jobs count should reflect both jobs
+        # We expect to list ALL jobs, regardless of labels
         assert "Found 2 job(s)" in out
-        # only the Kueue-managed job is listed
         assert "- job1" in out
-        assert "job2" not in out
+        assert "- job2" in out
+        # Only the "jobs" selector is needed
+        assert sel.calls.count("jobs") == 1
 
 
-def test_lists_kueue_managed_jobs_via_workload_owner_ref(capsys):
-    # neither job has the Kueue label, but job-b is owned by a Workload
-    job_a = make_job("job-a")
-    job_b = make_job("job-b")
-    wl_for_b = make_workload_owned_by_job("job-b")
+def test_lists_jobs_ignoring_workloads_or_kueue_details(capsys):
+    """
+    Regression test: ensure that ListJobsCommand behavior is simple:
+    it just lists whatever oc.selector("jobs").objects() returns,
+    without trying to filter based on Kueue labels or Workloads.
+    """
+    jobs = [
+        make_job("job-a", labels={}),
+        make_job("job-b", labels={"kueue.x-k8s.io/queue-name": "q1"}),
+    ]
 
-    with patch_selector([job_a, job_b], workloads=[wl_for_b]):
+    with patch_selector(jobs) as sel:
         ListJobsCommand.run(argparse.Namespace())
         out = capsys.readouterr().out
 
+        # Both jobs should appear in the output
         assert "Found 2 job(s)" in out
+        assert "- job-a" in out
         assert "- job-b" in out
-        assert "job-a" not in out  # no label and no owning workload
+
+        # Sanity check: we are not doing extra selectors like "workloads"
+        # (if your implementation *does* use other selectors, you can relax this)
+        assert sel.calls == ["jobs"]
 
 
 def test_selector_exception_exits_cleanly(capsys):
     with patch_selector([], raise_on="jobs"):
-        try:
+        with pytest.raises(SystemExit) as excinfo:
             ListJobsCommand.run(argparse.Namespace())
-            assert False, "Expected SystemExit due to selector error"
-        except SystemExit as e:
-            assert "Error occurred while retrieving jobs: test exception" in str(e)
+
+        msg = str(excinfo.value)
+        # We don’t care about the exact OpenShift formatting, just that our prefix
+        # and the core message text are present.
+        assert "Error occurred while retrieving jobs:" in msg
+        assert "test exception" in msg

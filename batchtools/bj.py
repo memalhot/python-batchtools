@@ -5,7 +5,6 @@ import sys
 import openshift_client as oc
 
 from .basecommand import Command
-from .helpers import is_kueue_managed_job
 
 
 class ListJobsCommand(Command):
@@ -38,8 +37,7 @@ class ListJobsCommand(Command):
 
             print(f"Found {len(jobs)} job(s):\n")
             for job in jobs:
-                if is_kueue_managed_job(job):
-                    print(f"- {job.model.metadata.name}")
+                print(f"- {job.model.metadata.name}")
 
         except oc.OpenShiftPythonException as e:
             sys.exit(f"Error occurred while retrieving jobs: {e}")
