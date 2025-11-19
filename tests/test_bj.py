@@ -70,7 +70,7 @@ def test_lists_all_jobs_and_count(capsys):
         assert sel.calls.count("jobs") == 1
 
 
-def test_lists_jobs_ignoring_workloads_or_kueue_details(capsys):
+def test_lists_jobs(capsys):
     """
     Regression test: ensure that ListJobsCommand behavior is simple:
     it just lists whatever oc.selector("jobs").objects() returns,

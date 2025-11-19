@@ -228,11 +228,11 @@ class CreateJobCommand(Command):
             oc_delete("job", job_name)
         else:
             print(
-                f"User specified not to wait, or not to delete, so {job_name} must be deleted by user."
+                f"User specified not to wait, or not to delete, so {job_name} must be deleted by user.\n"
+                f"You can do this by running:\n"
+                f"  bd {job_name} OR\n"
+                f"  oc delete job {job_name}"
             )
-            print("You can do this by running:")
-            print(f"bd {job_name} OR ")
-            print(f"oc delete job {job_name}")
 
 
 def get_pod_status(pod_name: str | None = None) -> str:
