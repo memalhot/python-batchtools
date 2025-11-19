@@ -1,6 +1,6 @@
 # pyright: reportUninitializedInstanceVariable=false
 from typing import cast
-from typing_extensions import override
+from typing_extensions import override, Optional
 
 import argparse
 import os
@@ -16,17 +16,21 @@ from .basecommand import SubParserFactory
 from .build_yaml import build_job_body
 from .helpers import pretty_print
 from .helpers import oc_delete
+from .helpers import fmt
 from .file_setup import prepare_context
+from .prom_metrics import (
+    PROMETHEUS_INSTANCE,
+    IN_PROGRESS,
+    # record helpers (emit both histogram + counter)
+    record_batch_observation,
+    record_queue_observation,
+    record_wall_observation,
+    push_registry_text,
+)
 
 
 class CreateJobCommandArgs(argparse.Namespace):
-    """This class serves two purposes:
-
-    1. It provides type hints that permit a properly configured IDE (or type
-       checker) to perform type checking on command line option values.
-
-    2. It provides default values for command line options.
-    """
+    """Typed args + defaults for `br` command."""
 
     gpu: str = "v100"
     image: str = "image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/csw-run-f25:latest"
@@ -44,36 +48,7 @@ class CreateJobCommandArgs(argparse.Namespace):
 
 
 class CreateJobCommand(Command):
-    """
-    brun creates and submits a batch job to a GPU batch queue using the OpenShift Python client.
-    The arguments are treated as a command line that will execute as the batch job within a container.
-    The behaviour of the job submission can be controlled via several environment variables or CLI flags.
-
-    By default, the job runs in an isolated container environment scheduled onto a GPU node using
-    the Kueue queue system. GPU type, image, resource limits, and runtime behavior (e.g., waiting or
-    automatic deletion) can be customized at submission time.
-
-    Example usages:
-
-    1. Run a simple command on the default GPU type (v100)
-    $ brun ./hello
-    Hello from CPU
-    Hello from GPU
-    ...
-    RUNDIR: jobs/job-v100-9215
-
-    2. Specify GPU type and image for a training job
-    $ br --gpu a100 --image quay.io/user/train:latest cuda-code
-
-    3. Submit without waiting for completion
-    $ br --wait 0 ./long_running_task.sh
-
-    By default, br waits for the job to complete, streams its logs,
-    and then displays the directory where the job outputs were copied.
-
-    See also:
-        See the repository README.md for more examples and advanced usage.
-    """
+    """br: Create and submit a GPU batch job."""
 
     name: str = "br"
     help: str = "Create and submit a GPU batch job"
@@ -83,30 +58,22 @@ class CreateJobCommand(Command):
     def build_parser(cls, subparsers: SubParserFactory):
         p = super().build_parser(subparsers)
         p.add_argument(
-            "--gpu",
-            default=CreateJobCommandArgs.gpu,
-            help="Select GPU type",
+            "--gpu", default=CreateJobCommandArgs.gpu, help="Select GPU type"
         )
         p.add_argument(
-            "--image",
-            default=CreateJobCommandArgs.image,
-            help="Specify container image for job",
+            "--image", default=CreateJobCommandArgs.image, help="Container image"
         )
         p.add_argument(
             "--context",
             action=argparse.BooleanOptionalAction,
             default=CreateJobCommandArgs.context,
-            help="Copy working directory",
+            help="Copy working directory to job context",
         )
         p.add_argument(
-            "--name",
-            default=CreateJobCommandArgs.name,
-            help="Base job name",
+            "--name", default=CreateJobCommandArgs.name, help="Base job name"
         )
         p.add_argument(
-            "--job-id",
-            default=CreateJobCommandArgs.job_id,
-            help="Job ID suffix",
+            "--job-id", default=CreateJobCommandArgs.job_id, help="Job ID suffix"
         )
         p.add_argument(
             "--job-delete",
@@ -130,26 +97,23 @@ class CreateJobCommand(Command):
             "--max-sec",
             default=CreateJobCommandArgs.max_sec,
             type=int,
-            help="Maximum execution time in seconds",
+            help="Maximum runtime",
         )
         p.add_argument(
             "--gpu-numreq",
             default=CreateJobCommandArgs.gpu_numreq,
             type=int,
-            help="Number of GPUs requested",
+            help="GPUs requested",
         )
         p.add_argument(
             "--gpu-numlim",
             default=CreateJobCommandArgs.gpu_numlim,
             type=int,
-            help="Number of GPUs limited",
+            help="GPU limit",
         )
         p.add_argument(
-            "command",
-            nargs=argparse.REMAINDER,
-            help="Command to run inside the container",
+            "command", nargs=argparse.REMAINDER, help="Command to execute in container"
         )
-
         return p
 
     @staticmethod
@@ -168,8 +132,8 @@ class CreateJobCommand(Command):
 
         if args.gpu not in DEFAULT_QUEUES:
             sys.exit(f"ERROR: unsupported GPU {args.gpu} : no queue found")
-        queue_name = DEFAULT_QUEUES[args.gpu]
 
+        queue_name = DEFAULT_QUEUES[args.gpu]
         job_name = f"{args.name}-{args.gpu}-{args.job_id}"
         container_name = f"{job_name}-container"
         file_to_execute = " ".join(args.command).strip()
@@ -177,7 +141,6 @@ class CreateJobCommand(Command):
         pwd = os.getcwd()
         context_directory = pwd
         jobs_directory = os.path.join(pwd, "jobs")
-
         output_directory = os.path.join(jobs_directory, job_name)
         dev_pod_name = socket.gethostname()
         getlist = os.path.join(output_directory, "getlist")
@@ -195,7 +158,7 @@ class CreateJobCommand(Command):
         )
 
         try:
-            # Create job body using the helper
+            # Build job YAML
             job_body = build_job_body(
                 job_name=job_name,
                 queue_name=queue_name,
@@ -216,9 +179,48 @@ class CreateJobCommand(Command):
 
             print(f"Creating job {job_name} in {queue_name}...")
             oc.create(job_body)
-            print(f"Job: {job_name} created successfully. Now checking pod...")
+            print(f"Job {job_name} created successfully.")
+
+            result_phase = "unknown"
+            run_elapsed = None
+            queue_wait = None
+            total_wall = None
+
             if args.wait:
-                log_job_output(job_name=job_name, wait=True, timeout=args.timeout)
+                result_phase, run_elapsed, queue_wait, total_wall = log_job_output(
+                    job_name=job_name, wait=True, timeout=args.timeout
+                )
+
+            # Emit metrics if we captured any timing
+            if (
+                run_elapsed is not None
+                or queue_wait is not None
+                or total_wall is not None
+            ):
+                labels = {
+                    "job": job_name,
+                    "gpu": args.gpu,
+                    "queue": queue_name,
+                    "instance": PROMETHEUS_INSTANCE,
+                }
+
+                IN_PROGRESS.labels(**labels, result=result_phase).inc()
+
+                if run_elapsed is not None:
+                    record_batch_observation(
+                        labels=labels, elapsed_sec=run_elapsed, result=result_phase
+                    )
+                if queue_wait is not None:
+                    record_queue_observation(
+                        labels=labels, elapsed_sec=queue_wait, result=result_phase
+                    )
+                if total_wall is not None:
+                    record_wall_observation(
+                        labels=labels, elapsed_sec=total_wall, result=result_phase
+                    )
+
+                IN_PROGRESS.labels(**labels, result=result_phase).dec()
+                push_registry_text()
 
         except oc.OpenShiftPythonException as e:
             sys.exit(f"Error occurred while creating job: {e}")
@@ -236,42 +238,89 @@ class CreateJobCommand(Command):
 
 
 def get_pod_status(pod_name: str | None = None) -> str:
-    """
-    Return the current status.phase of a pod (Pending, Running, Succeeded, Failed).
-    """
+    """Return the current status.phase of a pod."""
     pod = oc.selector(f"pod/{pod_name}").object()
     return pod.model.status.phase or "Unknown"
 
 
-def log_job_output(job_name: str, *, wait: bool, timeout: int | None) -> None:
+def log_job_output(
+    job_name: str, *, wait: bool, timeout: int | None
+) -> tuple[str, Optional[float], Optional[float], Optional[float]]:
     """
-    Wait until the job's pod completes (Succeeded/Failed), then print its logs once.
+    Wait for job completion and print logs.
+
+    Returns:
+      (result_phase, run_elapsed, queue_wait, total_wall)
     """
     pods = oc.selector("pod", labels={"job-name": job_name}).objects()
     if not pods:
         print(f"No pods found for job {job_name}")
-        return
+        return ("unknown", None, None, None)
 
     pod = pods[0]
     pod_name = pod.model.metadata.name
 
+    run_start = None
+    result_phase = "unknown"
+    run_elapsed = None
+    queue_wait = None
+    total_wall = None
+
     if wait:
-        start = time.monotonic()
+        start_poll = time.monotonic()
         while True:
             phase = get_pod_status(pod_name)
-            if phase in ("Succeeded", "Failed"):
-                print(f"Pod, {pod_name} finished with phase={phase}")
-                # end = time.monotonic()
-                # for logging information
-                # elapsed = end - start
-                break
-            if timeout and (time.monotonic() - start) > timeout:
-                print(f"Timeout waiting for pod {pod_name} to complete")
-                print(f"Deleting pod {pod_name}")
-                oc_delete("job", job_name)
-                return
+            if phase == "Running" and run_start is None:
+                # time waiting in queue is time from entering the queue to the time it takes to start running
+                run_start = time.monotonic()
+                queue_wait = run_start - start_poll  # submit -> running
 
-            # sleep to avoid hammering the server
+            if phase in ("Succeeded", "Failed"):
+                result_phase = phase.lower()
+                total_wall = time.monotonic() - start_poll  # submit -> terminal
+                print(f"Pod {pod_name} finished with phase={phase}")
+                break
+
+            if timeout and (time.monotonic() - start_poll) > timeout:
+                print(f"Timeout waiting for pod {pod_name} to complete")
+                print(f"Deleting job {job_name}")
+                oc_delete("job", job_name)
+                total_wall = time.monotonic() - start_poll
+                # timeout: no run duration (didn't finish), queue_wait may or may not be set
+                print_timing(queue_wait, None, total_wall)
+                return ("timeout", None, queue_wait, total_wall)
+
             time.sleep(2)
-    # pass in the pod object to get logs from, not the name
+
     print(pretty_print(pod))
+
+    # compute the runtime using the total time (total_wall)- time waiting in queue (queue_wait)
+    if wait:
+        if run_start is not None:
+            # running status was reached, run_elapsed = terminal - run_start
+            if total_wall is None:
+                total_wall = time.monotonic() - start_poll  # fallback
+            run_elapsed = total_wall - (queue_wait or 0.0)
+        else:
+            # Never reached Running; keep convention for failures:
+            run_elapsed = 0.0 if result_phase == "failed" else None
+            if total_wall is None:
+                total_wall = 0.0
+            if total_wall is not None and queue_wait is None:
+                queue_wait = total_wall
+
+    print_timing(queue_wait, run_elapsed, total_wall)
+    return (result_phase, run_elapsed, queue_wait, total_wall)
+
+
+def print_timing(
+    queue_wait: Optional[float],
+    run_elapsed: Optional[float],
+    total_wall: Optional[float],
+) -> None:
+    print(
+        "TIMING: "
+        f"queue_wait={fmt(queue_wait)}, "
+        f"run_duration={fmt(run_elapsed)}, "
+        f"total_wall={fmt(total_wall)}"
+    )

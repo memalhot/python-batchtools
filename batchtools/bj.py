@@ -4,6 +4,7 @@ import argparse
 import sys
 import openshift_client as oc
 
+from .helpers import is_kueue_managed_job
 from .basecommand import Command
 
 
@@ -35,8 +36,12 @@ class ListJobsCommand(Command):
                 print("No jobs found.")
                 return
 
-            print(f"Found {len(jobs)} job(s):\n")
-            for job in jobs:
+            # filter only Kueue-managed jobs
+            managed = [job for job in jobs if is_kueue_managed_job(job)]
+
+            print(f"Found {len(managed)} job(s):\n")
+
+            for job in managed:
                 print(f"- {job.model.metadata.name}")
 
         except oc.OpenShiftPythonException as e:

@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["openshift-client>=2.0.5", "typing-extensions>=4.15.0"]
+dependencies = ["openshift-client>=2.0.5", "typing-extensions>=4.15.0", "prometheus_client"]
 
 [project.scripts]
 # When we install the project, this causes the installer to create a

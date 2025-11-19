@@ -9,6 +9,16 @@ def is_logged_in() -> bool:
         return False
 
 
+def is_on_project() -> bool:
+    if not is_logged_in():
+        return False
+    try:
+        oc.get_project_name()
+        return True
+    except oc.OpenShiftPythonException:
+        return False
+
+
 def pretty_print(pod: oc.APIObject) -> str:
     formatted_logs: str = ""
     try:
@@ -29,40 +39,16 @@ def oc_delete(obj_type: str, obj_name: str) -> None:
         print(f"Error occurred while deleting {obj_type}/{obj_name}: {e}")
 
 
-# def is_kueue_managed_job(job_obj) -> bool:
-# """
-# Returns True if the Job is managed by Kueue.
-# Checks:
-#   1) Job has label 'kueue.x-k8s.io/queue-name'
-#   2) A Workload exists that either:
-#      - has an ownerReference pointing to this Job, or
-#      - has label job-name=<job-name>
-# """
-# try:
-#     md = job_obj.model.metadata
-#     labels = getattr(md, "labels", {}) or {}
-#     if "kueue.x-k8s.io/queue-name" in labels:
-#         return True
+def is_kueue_managed_job(job_obj) -> bool:
+    try:
+        md = job_obj.model.metadata
+        labels = getattr(md, "labels", {}) or {}
+        if "kueue.x-k8s.io/queue-name" in labels:
+            return True
+    except Exception:
+        return False
 
-#     job_name = md.name
-#     try:
-#         workloads = oc.selector("workloads").objects()
-#     except oc.OpenShiftPythonException:
-#         workloads = []
 
-#     for wl in workloads:
-#         wl_md = wl.model.metadata
-#         owners = getattr(wl_md, "ownerReferences", []) or []
-#         for o in owners:
-#             if (
-#                 getattr(o, "kind", "") == "Job"
-#                 and getattr(o, "name", "") == job_name
-#             ):
-#                 return True
-#         wl_labels = getattr(wl_md, "labels", {}) or {}
-#         if wl_labels.get("job-name") == job_name:
-#             return True
-# except Exception:
-#     return False
-
-# return False
+# FOR PRINTING TIMES
+def fmt(x):
+    return f"{x:.3f}s" if x is not None else "n/a"

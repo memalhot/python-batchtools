@@ -10,7 +10,7 @@ from .bp import PrintJobsCommand
 from .bq import GpuQueuesCommand
 from .br import CreateJobCommand
 from .bps import ListPodsCommand
-from .helpers import is_logged_in
+from .helpers import is_logged_in, is_on_project
 
 
 class BatchTools:
@@ -60,6 +60,10 @@ def main() -> None:
     if not is_logged_in():
         sys.exit(
             "You are not logged in to the oc cli. Retrieve the token using 'oc login --web' or retrieving the login token from the openshift UI."
+        )
+    if not is_on_project():
+        sys.exit(
+            "You are not on a project. For metric tracking, you must be on a project. Use oc project <project-name> to get on a project."
         )
 
     app = BatchTools()
