@@ -2,7 +2,10 @@ import subprocess
 from datetime import datetime, timezone
 from .helpers import is_on_project
 
+import os
+import shutil
 import openshift_client as oc
+
 from prometheus_client import (
     CollectorRegistry,
     Histogram,
@@ -16,7 +19,17 @@ LONG_JOB_BUCKETS = (1, 2, 5, 10, 20, 30, 60, 120, 180, 300, 600, 900, float("inf
 
 PROMETHEUS_PUSH_URL = "http://localhost:8080/metrics"
 
-PROMETHEUS_INSTANCE = oc.get_project_name() if is_on_project() else "devpod"
+
+def detect_instance() -> str:
+    if shutil.which("oc") is None:
+        return "devpod"
+    try:
+        return oc.get_project_name() if is_on_project() else "devpod"
+    except Exception:
+        return "devpod"
+
+
+PROMETHEUS_INSTANCE = os.getenv("PROMETHEUS_INSTANCE") or detect_instance()
 
 registry = CollectorRegistry()
 
