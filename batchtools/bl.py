@@ -8,6 +8,7 @@ import openshift_client as oc
 from .basecommand import Command
 from .basecommand import SubParserFactory
 from .helpers import pretty_print
+from .helpers import is_kueue_managed_pod
 
 
 class LogsCommandArgs(argparse.Namespace):
@@ -63,10 +64,15 @@ class LogsCommand(Command):
                     print(pretty_print(pod_dict[name]))
 
             else:
-                # case where user provides no args, print logs for all pods
+                printed_any = False
                 for name, pod in pod_dict.items():
-                    print(f"\nLogs for {name}:\n{'-' * 40}")
-                    print(pretty_print(pod))
+                    if is_kueue_managed_pod(pod):
+                        printed_any = True
+                        print(f"\nLogs for {name}:\n{'-' * 40}")
+                        print(pretty_print(pod))
+
+                if not printed_any:
+                    print("No Kueue-managed pods found")
 
         except oc.OpenShiftPythonException as e:
             sys.exit(f"Error occurred while retrieving logs: {e}")

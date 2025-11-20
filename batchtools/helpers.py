@@ -37,3 +37,18 @@ def is_kueue_managed_job(job_obj) -> bool:
             return True
     except Exception:
         return False
+
+
+def is_kueue_managed_pod(pod) -> bool:
+    try:
+        owners = getattr(pod.model.metadata, "ownerReferences", []) or []
+        job_owner = next((o for o in owners if o.kind == "Job"), None)
+        if not job_owner:
+            return False
+
+        job_name = job_owner.name
+        job_obj = oc.selector(f"job/{job_name}").object()
+        return is_kueue_managed_job(job_obj)
+
+    except Exception:
+        return False
