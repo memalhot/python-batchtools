@@ -1,4 +1,4 @@
- python-batchtools
+# python-batchtools
 
 ## Overview
 
@@ -55,7 +55,7 @@ The br command is how to submit batchjobs. It submits code intended to run on GP
 
 Here's how to use thed br command:
 
-First write a CUDA program and compile it :D
+First write a CUDA program and compile it :D <br>
 Then to submit your CUDA program to the GPU node:
 
 ``` sh
@@ -79,9 +79,9 @@ Run without waiting for logs (for longer runs, similar to a more traditional bat
 ``` sh
 batchtools br --no-wait "./cuda_program"
 ```
-***WARNING***
+***WARNING***<br>
 If you run br with the --no-wait flag, it will not be cleaned up for you. You must delete it on your own by running `batchtools bd <job-name>` or `oc delete job <job-name>`
-But don't worry, running with --no-wait will give you a reminder to delete your jobs!
+But don't worry, running with --no-wait will give you a reminder to delete your jobs!<br>
 
 And if you need help or want to see more flas:
 
