@@ -1,0 +1,15 @@
+# pushgateway-servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: pushgateway
+  namespace: ope-test
+  labels:
+    app: pushgateway
+spec:
+  selector:
+    matchLabels:
+      app: pushgateway
+  endpoints:
+    - port: http        # <- must match the Service port name
+      interval: 15s

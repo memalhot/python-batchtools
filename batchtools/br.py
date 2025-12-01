@@ -198,7 +198,7 @@ class CreateJobCommand(Command):
                 or total_wall is not None
             ):
                 labels = {
-                    "job": job_name,
+                    "job_name": job_name,
                     "gpu": args.gpu,
                     "queue": queue_name,
                     "instance": PROMETHEUS_INSTANCE,
