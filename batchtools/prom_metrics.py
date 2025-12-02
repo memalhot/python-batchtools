@@ -141,23 +141,20 @@ def generate_metrics_text() -> tuple[str, str]:
     payload = generate_latest(registry)
     return payload.decode("utf-8"), CONTENT_TYPE_LATEST
 
-def push_registry_text() -> None:
-    """
-    Push the current registry to a Prometheus Pushgateway.
+from prometheus_client import pushadd_to_gateway, delete_from_gateway  # add delete if you want cleanup
 
-    Uses PUSHGATEWAY_ADDR (host:port) and the logical job name "batchtools".
-    """
+def push_registry_text(grouping_key: dict[str, str] | None = None) -> None:
     if not PUSHGATEWAY_ADDR:
         body, _ = generate_metrics_text()
         print("PROM: PUSHGATEWAY_ADDR not set; below is the metrics payload:\n")
         print(body)
         return
-
     try:
         pushadd_to_gateway(
             PUSHGATEWAY_ADDR,
             job="batchtools",
             registry=registry,
+            grouping_key=grouping_key or {},
         )
         print(f"PROM: metrics pushed to pushgateway={PUSHGATEWAY_ADDR}")
     except Exception as e:

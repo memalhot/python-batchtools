@@ -220,7 +220,14 @@ class CreateJobCommand(Command):
                     )
 
                 IN_PROGRESS.labels(**labels, result=result_phase).dec()
-                push_registry_text()
+
+                # 👇 Create a grouping key unique to this job run
+                group = {
+                    "instance": PROMETHEUS_INSTANCE,  # e.g. "ope-test"
+                    "job_name": "job",             # e.g. "job-none-b799d46a6f995a9d8d58b6aff76abefc"
+                }
+
+                push_registry_text(grouping_key=group)
 
         except oc.OpenShiftPythonException as e:
             sys.exit(f"Error occurred while creating job: {e}")
