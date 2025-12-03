@@ -238,7 +238,7 @@ class CreateJobCommand(Command):
             print(
                 f"User specified not to wait, or not to delete, so {job_name} must be deleted by user.\n"
                 f"You can do this by running:\n"
-                f"  bd {job_name} OR\n"
+                f"  batchtools bd {job_name} OR\n"
                 f"  oc delete job {job_name}"
             )
 

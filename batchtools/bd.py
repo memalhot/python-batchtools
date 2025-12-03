@@ -43,8 +43,10 @@ class DeleteJobsCommand(Command):
                 print("No jobs found.")
                 return
 
+            gpu_jobs = [job for job in jobs]
+
             # only want to delete kueue jobs so filter for kueue jobs
-            kueue_gpu_jobs = [job for job in jobs if is_kueue_managed_job(job)]
+            kueue_gpu_jobs = [job for job in gpu_jobs if is_kueue_managed_job(job)]
 
             if not kueue_gpu_jobs:
                 print("No Kueue-managed GPU jobs to delete.")
