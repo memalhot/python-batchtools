@@ -1,19 +1,17 @@
 import batchtools.prom_metrics as pm
-import types
 from datetime import datetime
 from unittest import mock
 
 
 def test_now_rfc3339_parses_with_timezone():
     s = pm.now_rfc3339()
-    # ISO 8601 parseable and includes timezone info (+00:00)
     dt = datetime.fromisoformat(s)
     assert dt.tzinfo is not None
     assert s.endswith("+00:00")
 
 
 def _labels(job="job-x", gpu="none", queue="dummy-localqueue", instance="ns"):
-    return {"job": job, "gpu": gpu, "queue": queue, "instance": instance}
+    return {"job_name": job, "gpu": gpu, "queue": queue, "instance": instance}
 
 
 def _registry_text() -> str:
@@ -78,61 +76,58 @@ def test_generate_metrics_text_returns_valid_payload_and_ctype():
 
 
 def test_push_registry_text_no_url_prints_payload(capsys):
-    # Temporarily clear the push URL so it prints instead of POSTing
-    with mock.patch.object(pm, "PROMETHEUS_PUSH_URL", "", create=True):
+    # check "no PUSHGATEWAY_ADDR" branch
+    with mock.patch.object(pm, "PUSHGATEWAY_ADDR", ""):
         pm.push_registry_text()
+
     out = capsys.readouterr().out
-    assert "PROMETHEUS_PUSH_URL not set" in out
-    assert "# HELP" in out  # the metrics text is printed
+    assert "PROM: PUSHGATEWAY_ADDR not set" in out
+    assert "# HELP" in out
+    assert "# TYPE" in out
 
 
 def test_push_registry_text_posts_success(capsys):
     with (
-        mock.patch.object(
-            pm, "PROMETHEUS_PUSH_URL", "http://example/metrics", create=True
-        ),
-        mock.patch.object(pm.subprocess, "run") as mock_run,
+        mock.patch.object(pm, "PUSHGATEWAY_ADDR", "pushgateway.example:9091"),
+        mock.patch.object(pm, "pushadd_to_gateway") as mock_push,
     ):
-        mock_run.return_value = types.SimpleNamespace(returncode=0)
+        pm.push_registry_text(grouping_key={"instance": "test-ns"})
 
-        pm.push_registry_text()
-        out = capsys.readouterr().out
-        assert "metrics successfully pushed" in out
+    out = capsys.readouterr().out
+    assert "PROM: metrics pushed to pushgateway=pushgateway.example:9091" in out
 
-        # Verify we invoked curl with POST and sent our payload
-        assert mock_run.called
-        args, kwargs = mock_run.call_args
-        argv = args[0]
-        assert "curl" in argv[0]
-        assert "-X" in argv and "POST" in argv
-        assert "http://example/metrics" in argv
-
-        payload = kwargs.get("input", b"").decode("utf-8")
-        assert "# HELP" in payload
-        assert "# TYPE" in payload
+    # verify pushadd_to_gateway was called with expected args
+    mock_push.assert_called_once()
+    args, kwargs = mock_push.call_args
+    assert args[0] == "pushgateway.example:9091"
+    # job and registry are passed as keyword args
+    assert kwargs.get("job") == "batchtools"
+    assert kwargs.get("registry") is pm.registry
+    assert kwargs.get("grouping_key") == {"instance": "test-ns"}
 
 
 def test_push_registry_text_posts_failure(capsys):
     with (
-        mock.patch.object(
-            pm, "PROMETHEUS_PUSH_URL", "http://example/metrics", create=True
-        ),
-        mock.patch.object(pm.subprocess, "run") as mock_run,
+        mock.patch.object(pm, "PUSHGATEWAY_ADDR", "pushgateway.example:9091"),
+        mock.patch.object(pm, "pushadd_to_gateway", side_effect=RuntimeError("boom")),
     ):
-        mock_run.return_value = types.SimpleNamespace(returncode=7)
+        pm.push_registry_text(grouping_key={"instance": "test-ns"})
 
-        pm.push_registry_text()
-        out = capsys.readouterr().out
-        assert "curl returned nonzero exit 7" in out
-
-
-def test_push_registry_text_handles_exception(capsys):
-    with (
-        mock.patch.object(
-            pm, "PROMETHEUS_PUSH_URL", "http://example/metrics", create=True
-        ),
-        mock.patch.object(pm.subprocess, "run", side_effect=RuntimeError("boom")),
-    ):
-        pm.push_registry_text()
     out = capsys.readouterr().out
-    assert "failed to push metrics via curl" in out
+    assert "PROM: failed to push metrics to pushgateway pushgateway.example:9091" in out
+    assert "boom" in out
+
+
+def test_push_registry_text_handles_generic_exception(capsys):
+    class WeirdError(Exception):
+        pass
+
+    with (
+        mock.patch.object(pm, "PUSHGATEWAY_ADDR", "pushgateway.example:9091"),
+        mock.patch.object(pm, "pushadd_to_gateway", side_effect=WeirdError("weird")),
+    ):
+        pm.push_registry_text(grouping_key={"instance": "test-ns"})
+
+    out = capsys.readouterr().out
+    assert "PROM: failed to push metrics to pushgateway pushgateway.example:9091" in out
+    assert "weird" in out
