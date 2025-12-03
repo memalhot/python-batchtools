@@ -13,7 +13,7 @@ from prometheus_client import (
     Gauge,
     generate_latest,
     CONTENT_TYPE_LATEST,
-    pushadd_to_gateway,   # <-- add this
+    pushadd_to_gateway,
 )
 
 LONG_JOB_BUCKETS = (1, 2, 5, 10, 20, 30, 60, 120, 180, 300, 600, 900, float("inf"))
@@ -140,8 +140,6 @@ def generate_metrics_text() -> tuple[str, str]:
     """Return (body, content_type) for the current registry."""
     payload = generate_latest(registry)
     return payload.decode("utf-8"), CONTENT_TYPE_LATEST
-
-from prometheus_client import pushadd_to_gateway, delete_from_gateway  # add delete if you want cleanup
 
 def push_registry_text(grouping_key: dict[str, str] | None = None) -> None:
     if not PUSHGATEWAY_ADDR:
